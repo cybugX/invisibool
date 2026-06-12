@@ -1,0 +1,67 @@
+# cargo-deny configuration for the Invisibool workspace.
+#
+# Run as part of CI per build-prompt §4. Hard requirements:
+#   - Minimal, audited dependency tree.
+#   - No GPL/AGPL/LGPL — incompatible with Apache-2.0 distribution.
+#   - Block known vulnerabilities (RUSTSEC advisories).
+#   - Only crates.io as a registry; no git deps in release.
+
+[graph]
+all-features = false
+no-default-features = false
+
+[output]
+feature-depth = 1
+
+# ---- Security advisories ----------------------------------------------------
+
+[advisories]
+version = 2
+yanked = "deny"
+ignore = []
+
+# ---- License policy ---------------------------------------------------------
+#
+# Allowlist of permissive licenses compatible with Apache-2.0 distribution.
+# Anything outside this list fails CI; if a needed crate uses a new permissive
+# license, add it here in its own PR (with rationale in the commit message).
+
+[licenses]
+version = 2
+confidence-threshold = 0.93
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "MIT",
+    "MIT-0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
+    "Zlib",
+    "0BSD",
+    "CC0-1.0",
+]
+exceptions = []
+
+# ---- Bans -------------------------------------------------------------------
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+# Path deps within this workspace (e.g. invisibool depending on
+# invisibool-engine by `path = "..."` without a version) are not wildcard
+# deps in the publish sense; cargo-deny otherwise flags them.
+allow-wildcard-paths = true
+deny = []
+skip = []
+skip-tree = []
+
+# ---- Source policy ----------------------------------------------------------
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

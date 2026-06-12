@@ -13,7 +13,7 @@ name = "invisibool"
 path = "src/main.rs"
 
 [dependencies]
-invisibool-engine = { path = "../invisibool-engine" }
+invisibool-engine = { workspace = true }
 
 [lints]
 workspace = true

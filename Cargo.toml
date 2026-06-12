@@ -13,6 +13,9 @@ license = "Apache-2.0"
 repository = "https://github.com/cybugX/invisibool"
 authors = ["The Invisibool Authors"]
 
+[workspace.dependencies]
+invisibool-engine = { path = "crates/invisibool-engine", version = "=0.0.0" }
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 
