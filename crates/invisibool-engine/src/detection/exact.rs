@@ -2,13 +2,14 @@
 //!
 //! One precompiled Aho-Corasick automaton scans the full input in linear
 //! time and reports every leftmost-longest non-overlapping match. This is
-//! the highest-confidence detector per build-prompt §A5 (no guessing,
-//! near-zero false positives for the user's own data) and the differentiator
-//! versus detection-only tools.
+//! the highest-confidence detector (no guessing, near-zero false
+//! positives for the user's own data) and is what differentiates
+//! Invisibool from detection-only tools.
 //!
-//! Per build-prompt §A4.5 rule 1, the automaton is built ONCE at
-//! load/update time and reused across every scan — never rebuilt per
-//! request.
+//! The automaton is built ONCE at vault load/update time and reused
+//! across every scan — never rebuilt per request. Per-request rebuilds
+//! would burn the project's latency budget on a structure that only
+//! changes when the user runs `register` or `forget`.
 
 use aho_corasick::{AhoCorasick, MatchKind as AcMatchKind};
 

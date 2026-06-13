@@ -1,11 +1,10 @@
 //! Pattern detection over compiled regex rules.
 //!
-//! Per build-prompt §A5 / §A4.5 rule 2: one `RegexSet` over all configured
-//! rules, scanned in a single linear pass that tells us WHICH rules
-//! matched. To recover WHERE each match landed we then run only the
-//! matched rules' individual `Regex::find_iter`. In the common
-//! "no secrets in this prompt" case the RegexSet pass is the only work
-//! done — zero per-rule iteration.
+//! One `RegexSet` covers all configured rules and is scanned in a single
+//! linear pass that reports WHICH rules matched. To recover WHERE each
+//! match landed, only the matched rules' individual `Regex::find_iter`
+//! are run. In the common "input contained no secrets" case the
+//! RegexSet pass is the only work performed — zero per-rule iteration.
 //!
 //! The `regex` crate is non-backtracking by construction, so ReDoS is
 //! ruled out at the type-system level (no further config needed).

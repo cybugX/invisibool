@@ -1,17 +1,18 @@
 # gitleaks configuration for the Invisibool repo.
 #
-# Per build-prompt §4 (pre-decided, do not improvise):
-#   - A secret scrubber's repo is full of secret-shaped strings; a broad
-#     allowlist would quietly defang the scan, which is exactly what
-#     gitleaks exists to prevent.
-#   - Canary/test secrets are GENERATED AT RUNTIME by the leak harness
-#     and never committed — so they need no allowlist entry at all.
-#   - Any unavoidable static fixtures live ONLY under tests/fixtures/,
-#     use clearly-invalid markers (sk-test-INVALID...), and get a
-#     NARROWLY PATH-SCOPED allowlist covering exactly that directory.
-#   - rules/secrets.toml (the detection ruleset itself, which contains
-#     regex source — not actual secrets) gets a single targeted entry.
-#   - Nothing else is allowlisted. Never repo-wide.
+# A secrets-scrubber's repository is full of secret-shaped strings, so a
+# broad allowlist would silently defang the scanner the project depends
+# on. The allowlist below is deliberately narrow:
+#
+#   - Canary and test secrets are generated at runtime by the leak
+#     harness and never committed, so they need no allowlist entry.
+#   - Any unavoidable static fixtures live only under tests/fixtures/,
+#     use clearly-invalid markers (e.g. sk-test-INVALID...), and are
+#     covered by the path-scoped entry for that directory.
+#   - rules/secrets.toml holds the detection regex source (not actual
+#     secrets) and gets a single targeted path entry.
+#
+# Nothing else is allowlisted. Never repo-wide.
 
 title = "Invisibool gitleaks configuration"
 
@@ -20,9 +21,9 @@ useDefault = true
 
 [allowlist]
 description = """
-Narrow allowlist (build-prompt §4): test fixtures under tests/fixtures/ \
-and the regex source of the detection ruleset at rules/secrets.toml. \
-Nothing else is exempted from gitleaks scanning.\
+Narrow allowlist: test fixtures under tests/fixtures/ and the regex \
+source of the detection ruleset at rules/secrets.toml. Nothing else is \
+exempted from gitleaks scanning.\
 """
 paths = [
     '''tests/fixtures/.*''',

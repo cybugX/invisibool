@@ -2,11 +2,11 @@
 #
 # Invisibool development container.
 #
-# Build-prompt §4 mandates that the entire build/test/lint suite runs inside
-# a container so the reviewer's machine needs only Docker + git. This image
-# provides exactly that: pinned Rust toolchain plus pinned cargo-deny,
-# cargo-audit, and gitleaks. Demo scripts run inside this container too
-# (they use the in-memory clipboard/keychain backends per build-prompt §3.1).
+# Hosts the entire build/test/lint suite so the only host requirement is
+# Docker and git. Includes a pinned Rust toolchain plus pinned cargo-deny,
+# cargo-audit, and gitleaks. Demo scripts run inside this container too;
+# they exercise the in-memory clipboard and keychain backends, so they
+# need no host platform integration.
 #
 # Pin model:
 #   - The base image is pinned by tag AND by manifest-list digest, so a
@@ -87,8 +87,8 @@ RUN set -eux; \
     gitleaks version
 
 # --- Rust components for CI --------------------------------------------------
-# rustfmt and clippy are part of CI per build-prompt §4; install them in the
-# image so containerised runs don't pay the cost on first invocation.
+# rustfmt and clippy are CI gates, so install them into the image to avoid
+# paying the component-fetch cost on the first containerised run.
 RUN rustup component add rustfmt clippy
 
 # --- Non-root dev user -------------------------------------------------------

@@ -1,7 +1,8 @@
 # Local dev container for Invisibool.
 #
-# Per build-prompt §4: the entire build/test/lint suite must run inside this
-# container. The reviewer's machine needs only Docker + git.
+# The entire build/test/lint suite runs inside this container so the only
+# host requirements are Docker and git. The same container is used for
+# local development and any CI step that needs the pinned tool stack.
 #
 # Usage:
 #   docker compose run --rm dev                  # interactive shell

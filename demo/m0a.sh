@@ -103,7 +103,7 @@ run_in_container '
 '
 
 section "5 / 6   Secret scan: gitleaks over full history"
-note "Per build-prompt §4: narrow path-scoped allowlist for tests/fixtures/ and rules/secrets.toml only."
+note "Allowlist is narrowly path-scoped to tests/fixtures/ and rules/secrets.toml only."
 note "No broad allowlists — a secret scrubber'\''s repo must not defang the very scanner it depends on."
 run_in_container '
     gitleaks detect --no-banner --redact --source .

@@ -1,7 +1,7 @@
 //! Detection layer: locate spans of input text that match either a
 //! registered exact value (`ExactMatcher`) or a configured regex rule
-//! (`PatternMatcher`). `Detector` runs both and resolves overlaps per
-//! build-prompt §A5: longest-span-then-highest-confidence.
+//! (`PatternMatcher`). `Detector` runs both and resolves overlaps using
+//! the longest-span-then-highest-confidence rule.
 //!
 //! Public types: `Match`, `MatchKind`, `Confidence`, `Detector`,
 //! `ExactMatcher`, `PatternMatcher`.
@@ -65,10 +65,10 @@ impl MatchKind {
 }
 
 /// Detector confidence ordering. Higher variants beat lower ones in
-/// overlap resolution when span lengths tie. Per build-prompt §A5: exact
-/// match is `Certain`, pattern rules are `High`. M2 will add `Medium` for
-/// the entropy backstop — declaration order determines the derived `Ord`,
-/// so inserting Medium before High keeps comparisons stable.
+/// overlap resolution when span lengths tie. Exact match is `Certain`,
+/// pattern rules are `High`. M2 will add `Medium` for the entropy
+/// backstop — declaration order determines the derived `Ord`, so
+/// inserting Medium before High keeps comparisons stable.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Confidence {
     High,
@@ -76,9 +76,9 @@ pub enum Confidence {
 }
 
 /// Combined detector. Runs `ExactMatcher` and `PatternMatcher`, resolves
-/// overlaps per build-prompt §A5 (longest-span first; on a length tie,
-/// higher confidence wins; on both tied, leftmost wins), and returns
-/// non-overlapping matches in source order.
+/// overlaps (longest-span first; on a length tie, higher confidence wins;
+/// on both tied, leftmost wins), and returns non-overlapping matches in
+/// source order.
 pub struct Detector {
     exact: ExactMatcher,
     pattern: PatternMatcher,
