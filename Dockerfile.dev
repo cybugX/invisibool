@@ -1,0 +1,116 @@
+# syntax=docker/dockerfile:1.7
+#
+# Invisibool development container.
+#
+# Build-prompt §4 mandates that the entire build/test/lint suite runs inside
+# a container so the reviewer's machine needs only Docker + git. This image
+# provides exactly that: pinned Rust toolchain plus pinned cargo-deny,
+# cargo-audit, and gitleaks. Demo scripts run inside this container too
+# (they use the in-memory clipboard/keychain backends per build-prompt §3.1).
+#
+# Pin model:
+#   - The base image is pinned by tag AND by manifest-list digest, so a
+#     Docker Hub re-tag cannot silently change what we build on. The digest
+#     is the multi-arch image-index (Linux amd64 + arm64), so hosts of
+#     either architecture resolve consistently.
+#   - The three downloaded tool binaries (cargo-deny, cargo-audit, gitleaks)
+#     are pinned by version AND by SHA-256 of the release tarball, so an
+#     upstream re-tag cannot silently swap the binary mid-flight.
+#   - To refresh the base-image digest when bumping the Rust version:
+#       docker buildx imagetools inspect rust:<new-version>-bookworm
+#     copy the top-level "Digest:" line (NOT a per-platform manifest digest)
+#     and replace the @sha256:... below.
+
+ARG RUST_VERSION=1.96.0
+# rust:1.96.0-bookworm — manifest-list digest as inspected on 2026-06-12.
+FROM rust:${RUST_VERSION}-bookworm@sha256:19817ead3289c8c631c73df281e18b59b172f6a31f4f563290f69cddd06c30e9 AS base
+
+# Pinned versions of CI tools. Bump in their own commit with rationale.
+ARG CARGO_DENY_VERSION=0.19.8
+ARG CARGO_DENY_SHA256=70e769ae3872e34d45132b17040859175e11401dc12dddb0303e0b8c7d088f3f
+
+ARG CARGO_AUDIT_VERSION=0.22.2
+# CARGO_AUDIT_SHA256: trust-on-first-use. Unlike cargo-deny and gitleaks
+# (whose upstreams publish .sha256 files alongside each release asset and
+# therefore attest the hash themselves), the rustsec project does not
+# publish a checksum file for cargo-audit. This hash was self-computed by
+# downloading the release tarball and running sha256sum on 2026-06-12; if
+# that first download had been intercepted, this pin would lock in the
+# tampered bytes. Subsequent builds are protected by the pin against any
+# upstream re-tag, but the initial trust anchor is weaker than for the
+# other two tools. Re-verify against multiple network paths when bumping.
+ARG CARGO_AUDIT_SHA256=7fb9497f8594b389e5fce5ef9b92db08432996895b2e0c5a0167a69ed445c428
+
+ARG GITLEAKS_VERSION=8.30.1
+ARG GITLEAKS_SHA256=551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+
+# --- OS deps -----------------------------------------------------------------
+# Minimal: ca-certificates for HTTPS downloads, curl to fetch tool tarballs,
+# git for cargo-deny's advisory-DB clone. No clipboard or keychain native
+# libraries here — the test backends are in-memory; nightly OS-native smoke
+# tests run on real OS runners, not in this container.
+RUN apt-get update \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        git \
+ && rm -rf /var/lib/apt/lists/*
+
+# --- cargo-deny --------------------------------------------------------------
+RUN set -eux; \
+    url="https://github.com/EmbarkStudios/cargo-deny/releases/download/${CARGO_DENY_VERSION}/cargo-deny-${CARGO_DENY_VERSION}-x86_64-unknown-linux-musl.tar.gz"; \
+    curl -fsSL "$url" -o /tmp/cargo-deny.tar.gz; \
+    echo "${CARGO_DENY_SHA256}  /tmp/cargo-deny.tar.gz" | sha256sum -c -; \
+    tar -xzf /tmp/cargo-deny.tar.gz -C /tmp; \
+    install -m 0755 "/tmp/cargo-deny-${CARGO_DENY_VERSION}-x86_64-unknown-linux-musl/cargo-deny" /usr/local/bin/cargo-deny; \
+    rm -rf /tmp/cargo-deny*; \
+    cargo-deny --version
+
+# --- cargo-audit -------------------------------------------------------------
+RUN set -eux; \
+    url="https://github.com/rustsec/rustsec/releases/download/cargo-audit/v${CARGO_AUDIT_VERSION}/cargo-audit-x86_64-unknown-linux-musl-v${CARGO_AUDIT_VERSION}.tgz"; \
+    curl -fsSL "$url" -o /tmp/cargo-audit.tgz; \
+    echo "${CARGO_AUDIT_SHA256}  /tmp/cargo-audit.tgz" | sha256sum -c -; \
+    tar -xzf /tmp/cargo-audit.tgz -C /tmp; \
+    install -m 0755 "/tmp/cargo-audit-x86_64-unknown-linux-musl-v${CARGO_AUDIT_VERSION}/cargo-audit" /usr/local/bin/cargo-audit; \
+    rm -rf /tmp/cargo-audit*; \
+    cargo-audit --version
+
+# --- gitleaks ----------------------------------------------------------------
+RUN set -eux; \
+    url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"; \
+    curl -fsSL "$url" -o /tmp/gitleaks.tar.gz; \
+    echo "${GITLEAKS_SHA256}  /tmp/gitleaks.tar.gz" | sha256sum -c -; \
+    tar -xzf /tmp/gitleaks.tar.gz -C /tmp; \
+    install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks; \
+    rm -rf /tmp/gitleaks*; \
+    gitleaks version
+
+# --- Rust components for CI --------------------------------------------------
+# rustfmt and clippy are part of CI per build-prompt §4; install them in the
+# image so containerised runs don't pay the cost on first invocation.
+RUN rustup component add rustfmt clippy
+
+# --- Non-root dev user -------------------------------------------------------
+# Mount file ownership in compose matches the host user's UID/GID so files
+# created in the container don't end up root-owned on the host. The default
+# 1000:1000 matches a typical single-user Linux box; pass build args to
+# override (see docker-compose.yml).
+ARG USER_UID=1000
+ARG USER_GID=1000
+RUN groupadd --gid "${USER_GID}" dev \
+ && useradd  --uid "${USER_UID}" --gid "${USER_GID}" --shell /bin/bash --create-home dev \
+ && mkdir -p /workspace/target /usr/local/cargo/registry /usr/local/cargo/git \
+ && chown -R dev:dev /workspace /usr/local/cargo
+ # /workspace/target and the cargo caches are mount points for named volumes
+ # in docker-compose.yml. Docker initializes a named volume from the image
+ # path's contents and ownership on first mount, so creating these dirs with
+ # dev:dev ownership now lets the empty volumes inherit it — otherwise they
+ # mount as root-owned and the dev user can't write to them.
+
+USER dev
+WORKDIR /workspace
+
+# Default to an interactive shell so `docker compose run --rm dev` drops into
+# a usable environment. CI / scripted use supplies its own command.
+CMD ["/bin/bash"]

@@ -1,0 +1,49 @@
+# Local dev container for Invisibool.
+#
+# Per build-prompt §4: the entire build/test/lint suite must run inside this
+# container. The reviewer's machine needs only Docker + git.
+#
+# Usage:
+#   docker compose run --rm dev                  # interactive shell
+#   docker compose run --rm dev cargo check      # one-shot command
+#   docker compose run --rm dev cargo deny check
+#   docker compose run --rm dev gitleaks detect --no-banner
+#
+# Volumes:
+#   - The repo is bind-mounted at /workspace so edits on the host are seen
+#     immediately in the container.
+#   - The Rust build target dir and the cargo registry/git caches live in
+#     named volumes so repeat builds are fast and don't pollute the host.
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        # HOST_UID/HOST_GID rather than UID/GID because `UID` is a readonly
+        # bash builtin — `UID=$(id -u) docker compose ...` silently fails to
+        # export it, so the container user mismatches the host user and bind
+        # mounts misbehave. Invoke with:
+        #   HOST_UID=$(id -u) HOST_GID=$(id -g) docker compose ...
+        USER_UID: "${HOST_UID:-1000}"
+        USER_GID: "${HOST_GID:-1000}"
+    image: invisibool-dev:latest
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - cargo-registry:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+      - target:/workspace/target
+    environment:
+      # Cargo writes its registry/git caches under CARGO_HOME (defaulted by
+      # the rust image to /usr/local/cargo) — leave that alone so the named
+      # volumes above catch the right paths.
+      CARGO_TERM_COLOR: always
+    tty: true
+    stdin_open: true
+
+volumes:
+  cargo-registry:
+  cargo-git:
+  target:

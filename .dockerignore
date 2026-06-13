@@ -1,0 +1,8 @@
+.git
+target
+**/target
+*.profraw
+*.profdata
+.idea/
+.vscode/
+.DS_Store
