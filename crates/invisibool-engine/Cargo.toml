@@ -8,5 +8,20 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 
+[dependencies]
+aho-corasick = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+fpe = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
+zeroize = { workspace = true }
+secrecy = { workspace = true }
+subtle = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true }
+
 [lints]
 workspace = true

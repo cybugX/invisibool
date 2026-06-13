@@ -16,6 +16,46 @@ authors = ["The Invisibool Authors"]
 [workspace.dependencies]
 invisibool-engine = { path = "crates/invisibool-engine", version = "=0.0.0" }
 
+# M0b engine dependencies.
+#
+# Each crate listed below is justified by a specific build-prompt §2 / §3
+# requirement. Versions use minor-pin caret semantics ("1.1" → ^1.1) so
+# Cargo.lock determines exact transitives but a `cargo update` won't cross
+# a semver-major silently. Lockfile is committed.
+#
+# Detection (§A5):
+#   aho-corasick — one precompiled automaton over registered values
+#   regex        — RegexSet pattern matcher (linear-time only; non-backtracking)
+#
+# Tokenizer (§A6, A15):
+#   fpe          — FF1 per NIST SP 800-38G; hand-rolling cipher modes is
+#                  retired design #1 (CLAUDE.md), so this crate is mandated
+#   hmac + sha2  — HMAC-SHA-256 for MAC-tagged self-authenticating fakes
+#   subtle       — constant-time equality on MAC tails
+#
+# Memory safety of secret material (§3.1, A11):
+#   secrecy      — `Secret<T>` wrapper; never logged, never Debug-printed
+#   zeroize      — wipe plaintext from memory on drop (derive feature for
+#                  Zeroize / ZeroizeOnDrop on internal types)
+#
+# Serialization (session-map serialize hooks for M1, no on-disk artifact in
+# M0b itself):
+#   serde + serde_json
+#
+# Benchmarks (§3.3) — engine-only dev-dep:
+#   criterion
+aho-corasick = "1.1"
+regex = "1.12"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+fpe = "0.6"
+hmac = "0.13"
+sha2 = "0.11"
+zeroize = { version = "1.9", features = ["derive"] }
+secrecy = "0.10"
+subtle = "2"
+criterion = "0.8"
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 
