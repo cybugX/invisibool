@@ -7,5 +7,8 @@
 #![forbid(unsafe_code)]
 
 pub mod detection;
+pub mod engine;
 pub mod idempotence;
 pub mod tokenizer;
+
+pub use engine::Engine;
