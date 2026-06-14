@@ -16,4 +16,5 @@
 //! seed — the raw secret (deterministic across sessions) or a value
 //! salted with a session key (per-session stable only).
 
+pub mod mac;
 pub mod reserved;
