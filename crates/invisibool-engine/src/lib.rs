@@ -7,3 +7,4 @@
 #![forbid(unsafe_code)]
 
 pub mod detection;
+pub mod tokenizer;

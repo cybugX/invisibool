@@ -8,7 +8,15 @@ members = [
 [workspace.package]
 version = "0.0.0"
 edition = "2021"
-rust-version = "1.78"
+# MSRV reflects the RUNTIME dependency floor only. The RustCrypto stack
+# we depend on (block-buffer, crypto-common 0.2, digest 0.11, hmac 0.13,
+# sha2 0.11, zeroize 1.9, and several adjacent crates) all declare
+# rust-version = "1.85", which is also the Rust 2024 edition release.
+# Anyone who installs the binary or links the library only needs a
+# 1.85+ toolchain. Contributors who run `cargo test` or `cargo bench`
+# need Rust 1.86+ because criterion 0.8 (a dev-dependency, never in the
+# shipped artifact) requires it; see the comment near `criterion` below.
+rust-version = "1.85"
 license = "Apache-2.0"
 repository = "https://github.com/cybugX/invisibool"
 authors = ["The Invisibool Authors"]
@@ -43,7 +51,12 @@ invisibool-engine = { path = "crates/invisibool-engine", version = "=0.0.0" }
 #   serde + serde_json
 #
 # Benchmarks (§3.3) — engine-only dev-dependency:
-#   criterion
+#   criterion    — declares MSRV 1.86 (higher than the consumer-facing
+#                  workspace MSRV of 1.85). This is intentional: criterion
+#                  is a developer tool that never ships, so a higher
+#                  bench-side floor does not affect anyone installing or
+#                  linking the crate. If criterion drops below 1.85 again,
+#                  this note becomes a no-op.
 aho-corasick = "1.1"
 regex = "1.12"
 serde = { version = "1", features = ["derive"] }
