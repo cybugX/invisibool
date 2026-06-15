@@ -201,8 +201,9 @@ mod tests {
             PatternMatcher::build([r"\bAKIA[A-Z2-7]{16}\b"]).unwrap(),
         );
         let hits = d.scan("see AKIAAQUICKFOXEXAMPLE here");
-        // Both detectors match the same 20-byte span; exact wins on
-        // confidence per the §A5 tiebreaker.
+        // Both detectors match the same 20-byte span; the tiebreaker
+        // is confidence, and exact-match has higher confidence than a
+        // pattern hit (the value is on the user's vault, not inferred).
         assert_eq!(hits.len(), 1);
         assert!(matches!(hits[0].kind, MatchKind::Exact { .. }));
     }
@@ -210,8 +211,9 @@ mod tests {
     #[test]
     fn longer_pattern_wins_over_shorter_exact() {
         // Exact is just "AKIA" (4 bytes). Pattern matches the full
-        // "AKIAAQUICKFOXEXAMPLE" (20 bytes). Longer span beats higher
-        // confidence per the §A5 rule.
+        // "AKIAAQUICKFOXEXAMPLE" (20 bytes). Span length is the first
+        // tiebreaker — the longer span wins over the higher-confidence
+        // shorter one, so a registered prefix can't shadow a full hit.
         let d = Detector::new(
             ExactMatcher::build(["AKIA"]).unwrap(),
             PatternMatcher::build([r"\bAKIA[A-Z2-7]{16}\b"]).unwrap(),

@@ -12,10 +12,11 @@
 #
 # Each gate is its own job so the GitHub PR status page reports them
 # independently; CI minutes for parallel small jobs are cheap. The
-# leak-harness job is still an M0a placeholder; the bench-regression job
-# is now a real Criterion run gated by scripts/bench-regression.py, with
-# a separate workflow_dispatch-only bench-baseline-regen job for
-# producing fresh baselines on the pinned runner class.
+# bench-regression and leak-harness jobs are real engine-level gates
+# (Criterion+tripwire script and an integration-test canary harness
+# respectively); the workflow_dispatch-only bench-baseline-regen job
+# produces fresh Criterion baselines on the pinned runner class for
+# the regression tripwire to compare against.
 
 name: CI
 
@@ -163,28 +164,31 @@ jobs:
           gitleaks version
       - run: gitleaks detect --no-banner --redact --source .
 
-  # ----- leak harness (M0a placeholder) ------------------------------------
+  # ----- leak harness ------------------------------------------------------
+  #
+  # Runs the engine-level leak harness, an integration test that asserts
+  # registered-value plaintext never appears in any output channel other
+  # than the intended restore stream. Each test generates a fresh canary
+  # at runtime (system clock + process id) — no canary string is ever
+  # committed to the repo.
+  #
+  # The harness covers both the happy-path scrub families (FF1, PII,
+  # card) and the three fail-closed branches that USED to be capable of
+  # leaking before they were converted to redactions (Formatless,
+  # FF1-eligibility-failure-at-scrub-time, non-16-digit card layout).
+  # If a future engine change re-introduces a fail-open path, the
+  # harness catches it on the next PR.
+  #
+  # `--nocapture` surfaces the per-test progress lines in the workflow
+  # log; those lines deliberately never include canary plaintext.
   leak-harness:
-    name: leak harness (M0a placeholder)
+    name: leak harness
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - name: Placeholder
-        run: |
-          cat <<'EOF'
-          Leak harness placeholder — M0b will add the real integration harness.
-
-          Policy: canary plaintext may appear ONLY on restore's intended
-          primary output channel (stdout, or the clipboard slot for an
-          explicit clipboard restore) — never in logs, temp files, audit
-          output, stray clipboard writes, or control-channel traffic.
-          Canary secrets are generated at runtime by the harness and
-          never committed.
-
-          M0a is a scaffold with no engine code; there is nothing to leak yet,
-          so this job is a structural pass. The CI slot exists now so M0b adds
-          only the harness code, not the workflow wiring.
-          EOF
+      - uses: dtolnay/rust-toolchain@6190aa5fb88a88ee71c12769924bbe63a9ab152e # 1.96.0
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      - run: cargo test -p invisibool-engine --test leak_harness -- --nocapture
 
   # ----- Criterion bench regression ----------------------------------------
   #

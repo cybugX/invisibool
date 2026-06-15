@@ -14,7 +14,9 @@
 //! - **ASCII only** — multi-byte UTF-8 cannot be safely indexed by
 //!   byte offset.
 //! - **No whitespace** — whitespace characters make candidate boundaries
-//!   undefinable in free text (project spec §A6).
+//!   undefinable in free text: a fake containing a space would split
+//!   into two tokens at the matcher and the restore pass could not
+//!   re-assemble the original span.
 //! - **All distinct** — every symbol must appear at most once; otherwise
 //!   `index_of` would be ambiguous.
 //! - **Radix in `[2, 65535]`** — NIST SP 800-38G's FF1 domain bounds.

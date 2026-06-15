@@ -7,12 +7,13 @@
 //!
 //! - **FF1-eligible** registered values go through `FpeTokenizer` —
 //!   round-trip restore works in any process that loads the same vault.
-//! - **PII** (Email / IPv4 / Phone) goes through chunk-4 reserved-range
-//!   generators — output is restorable in long-lived processes via the
-//!   session map, but *not* in two-command terminal mode.
+//! - **PII** (Email / IPv4 / Phone) goes through the reserved-range
+//!   generators (`example.com`, RFC 5737, the 555-01XX phone exchange)
+//!   — output is restorable in long-lived processes via the session
+//!   map, but *not* in two-command terminal mode.
 //! - **Cards** go through `fake_card_visa16` — same restorability story.
-//! - **Formatless** values would need a random+MAC body generator that
-//!   composes chunk-5 primitives, which M0b does not yet wire here.
+//! - **Formatless** values would need a random+MAC body generator on
+//!   top of the MAC-tag primitives, which M0b does not yet wire here.
 //!   Until that lands, the engine FAILS CLOSED: the original value is
 //!   removed from the output and replaced with `REDACTION_PLACEHOLDER`,
 //!   and a `RedactedFormatless` notice is recorded. Better to drop the
@@ -41,8 +42,9 @@
 //!
 //! M0b ships the stateless-FF1 mode. A long-lived "session" mode that
 //! holds a `SessionMap` for restorability of non-FF1 types is the next
-//! integration layer (chunk-6 ships the data structure; M1's `watch`
-//! daemon and the CLI's `--session` flag wire it).
+//! integration layer — the session-map type is implemented inside the
+//! engine already; M1's `watch` daemon and the CLI's `--session` flag
+//! wire it into a live restore path.
 
 use crate::detection::{ExactMatcher, MatchKind};
 use crate::idempotence::{IdempotenceContext, IdempotenceDecision};
@@ -164,9 +166,10 @@ impl Engine {
     /// Build the engine over a snapshot of the vault. Ownership of the
     /// registration lists moves into the engine.
     ///
-    /// `session_mac_key` is the HMAC key for the MAC-tail recognition
-    /// path in idempotence (chunk 9 → chunk 5). M1 will derive it from
-    /// the vault key per session.
+    /// `session_mac_key` is the HMAC key the idempotence layer hands to
+    /// the MAC primitives when verifying whether a candidate is one of
+    /// our own self-authenticating session fakes. M1 will derive it
+    /// from the vault key per session.
     pub fn new<K: KeyProvider>(
         key_provider: &K,
         registered: Vec<RegisteredValue>,
@@ -465,7 +468,7 @@ mod tests {
         assert_eq!(restored.output, input);
     }
 
-    // CAVEAT — chunk-13 threat-model checklist tracks the follow-up:
+    // CAVEAT — also tracked in the threat model:
     //
     // This test asserts the equality scrub(scrub(x)) == scrub(x) at the
     // engine level. In M0b the engine uses ONLY exact-match detection

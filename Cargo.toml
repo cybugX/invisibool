@@ -31,26 +31,26 @@ invisibool-engine = { path = "crates/invisibool-engine", version = "=0.0.0" }
 # exact transitives. The lockfile is committed so `cargo update` cannot
 # cross a semver-major silently.
 #
-# Detection (§A5):
+# Detection:
 #   aho-corasick — one precompiled automaton over registered values
 #   regex        — RegexSet pattern matcher (linear-time, non-backtracking)
 #
-# Tokenizer (§A6, §A15):
+# Tokenizer (format-preserving fake generation, per-entity dispatch):
 #   fpe          — FF1 per NIST SP 800-38G. The project forbids
 #                  hand-rolling cipher modes, so this crate is mandated.
 #   hmac + sha2  — HMAC-SHA-256 for MAC-tagged self-authenticating fakes
 #   subtle       — constant-time equality on MAC tails
 #
-# Memory safety of secret material (§3.1, §A11):
+# Memory safety of secret material (in-memory wipe + non-leaking wrappers):
 #   secrecy      — `Secret<T>` wrapper; never logged, never Debug-printed
 #   zeroize      — wipe plaintext from memory on drop (derive feature for
 #                  Zeroize / ZeroizeOnDrop on internal types)
 #
-# Serialization (session-map serialize hooks for M1; no on-disk artifact
-# in M0b itself):
+# Serialization (session-map serialize hooks for the M1 watch daemon;
+# no on-disk artifact in the engine itself):
 #   serde + serde_json
 #
-# Benchmarks (§3.3) — engine-only dev-dependency:
+# Benchmarks (latency-budget enforcement) — engine-only dev-dependency:
 #   criterion    — declares MSRV 1.86 (higher than the consumer-facing
 #                  workspace MSRV of 1.85). This is intentional: criterion
 #                  is a developer tool that never ships, so a higher
@@ -68,9 +68,11 @@ fpe = "0.6"
 aes = "0.8"
 hmac = "0.13"
 sha2 = "0.11"
-# HKDF-SHA256 derives the FF1 subkey from the vault key per chunk-7's
-# design: FF1_KEY = HKDF-SHA256(salt: empty, ikm: vault_key,
-# info: "invisibool-ff1-key-v1"). Same RustCrypto major as hmac 0.13.
+# HKDF-SHA256 derives the FF1 subkey from the vault key:
+# FF1_KEY = HKDF-SHA256(salt: empty, ikm: vault_key,
+# info: "invisibool-ff1-key-v1"). The versioned `info` string lets the
+# derivation rotate independently of the vault key.
+# Same RustCrypto major as hmac 0.13.
 hkdf = "0.13"
 zeroize = { version = "1.9", features = ["derive"] }
 secrecy = "0.10"

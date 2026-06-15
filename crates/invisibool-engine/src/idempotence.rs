@@ -30,7 +30,7 @@
 //!   session-map fakes.
 //! - **(c) MAC verification** — if the candidate's tail verifies as a
 //!   truncated keyed MAC over the preceding bytes, it is one of our
-//!   MAC-tagged self-authenticating fakes (chunk-5 mechanism).
+//!   MAC-tagged self-authenticating fakes.
 //!
 //! All three checks are cheap. (a) and (c) run only on pattern-matched
 //! candidates already pre-filtered by prefix/length/character-class
@@ -39,10 +39,10 @@
 //! ## Documented carve-out
 //!
 //! Fakes whose body is too short to embed a K-character MAC tail
-//! (chunk-5's short-fake carve-out) fail check (c) and reach the
-//! Scrub branch. In live `watch` mode they are still recognised by the
-//! session map; in two-command terminal mode they are not idempotent
-//! and the user is told so at scrub time.
+//! (the short-fake carve-out on the MAC scheme) fail check (c) and
+//! reach the Scrub branch. In live `watch` mode they are still
+//! recognised by the session map; in two-command terminal mode they
+//! are not idempotent and the user is told so at scrub time.
 
 use crate::tokenizer::alphabet::Alphabet;
 use crate::tokenizer::fpe::{FpeRegistration, FpeTokenizer};

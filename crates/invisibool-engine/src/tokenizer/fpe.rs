@@ -1,11 +1,10 @@
 //! Format-preserving encryption for FF1-eligible registered values.
 //!
-//! Implements project spec §A6's strategy (b) — stateless reversal via
-//! deterministic format-preserving encryption — using the `fpe` crate's
-//! NIST SP 800-38G FF1-AES256 implementation. Restore decrypts a
-//! candidate's body with each profile-matching registration's tweak and
-//! accepts the match whose plaintext equals the registered value
-//! (constant-time compare).
+//! Stateless format-preserving reversal via deterministic FF1 — uses
+//! the `fpe` crate's NIST SP 800-38G FF1-AES256 implementation. Restore
+//! decrypts a candidate's body with each profile-matching
+//! registration's tweak and accepts the match whose plaintext equals
+//! the registered value (constant-time compare).
 //!
 //! **The "stateless" claim, precisely.** FF1 restore needs only persistent
 //! vault state, not per-submission ephemeral state. The shared state
@@ -21,7 +20,7 @@
 //! same FF1 subkey via HKDF from the same vault key, trial-decrypts each
 //! profile-matching candidate.
 //!
-//! **Crypto choices, fixed by chunk-7 design review.**
+//! **Crypto choices.**
 //!
 //! - Block cipher: AES-256.
 //! - FF1 subkey derivation: HKDF-SHA256 with `salt = empty`,
@@ -56,7 +55,10 @@ const FF1_KEY_LEN: usize = 32;
 /// Tweak length in bytes — fixed at 16 (128 bits) for all registered
 /// values, well within NIST SP 800-38G's 0–65535-byte range.
 pub const TWEAK_LEN: usize = 16;
-/// FF1 minimum domain size, per project spec §A6: `radix^length ≥ 10^6`.
+/// FF1 minimum domain size: `radix^length ≥ 10^6`. Below this floor
+/// the fake's possibility space is too small to give meaningful
+/// indistinguishability — a 5-digit fake of a 5-digit value lives in a
+/// 100k-element space, trivially brute-forceable.
 const MIN_DOMAIN: u64 = 1_000_000;
 
 /// Source of the vault key. M0b ships an in-memory test impl; M1 swaps
@@ -94,8 +96,8 @@ impl KeyProvider for InMemoryKeyProvider {
 /// reproducible by HKDF.
 ///
 /// `SessionMapped` entries — formatless values, cards, structured PII —
-/// take the session-map path (chunk 6). They are not restorable across
-/// two-command CLI invocations without an explicit `--session` file; the
+/// take the session-map path. They are not restorable across two-
+/// command CLI invocations without an explicit `--session` file; the
 /// end-of-scrub notice discloses this.
 #[derive(Debug)]
 pub enum RegisteredValue {
@@ -105,7 +107,12 @@ pub enum RegisteredValue {
 
 /// A registered value that takes the FF1 path. Construct only via
 /// `register` after passing the eligibility check.
-#[derive(Debug)]
+///
+/// `Debug` is implemented manually so the registered plaintext never
+/// appears in `{:?}` output — the derived impl would delegate to
+/// `Zeroizing<String>::fmt`, which prints the inner string verbatim. A
+/// stray `dbg!(&registration)` or a future log line that formats the
+/// struct must not leak the secret.
 pub struct FpeRegistration {
     pub label: String,
     pub value: Zeroizing<String>,
@@ -118,14 +125,38 @@ pub struct FpeRegistration {
     pub prefix: String,
 }
 
+impl std::fmt::Debug for FpeRegistration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FpeRegistration")
+            .field("label", &self.label)
+            .field("value", &"<redacted>")
+            .field("tweak", &self.tweak)
+            .field("alphabet", &self.alphabet)
+            .field("prefix", &self.prefix)
+            .finish()
+    }
+}
+
 /// A registered value that takes the session-map path. `kind` chooses
 /// the fake generator: test-BIN for cards, reserved range for PII,
 /// random + MAC for formatless.
-#[derive(Debug)]
+///
+/// `Debug` is implemented manually for the same reason as
+/// `FpeRegistration` above.
 pub struct SessionRegistration {
     pub label: String,
     pub value: Zeroizing<String>,
     pub kind: SessionFakeKind,
+}
+
+impl std::fmt::Debug for SessionRegistration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SessionRegistration")
+            .field("label", &self.label)
+            .field("value", &"<redacted>")
+            .field("kind", &self.kind)
+            .finish()
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -135,7 +166,8 @@ pub enum SessionFakeKind {
     /// guarantee to be collision-safe against real cards.
     Card,
     /// Structured PII — emails, IPv4 addresses, phone numbers — uses
-    /// reserved-range generators (chunk 4).
+    /// reserved-range generators (`example.com`, 192.0.2.0/24,
+    /// +1-555-0100..0199 etc.) so the fake collides with no real entity.
     Pii(PiiKind),
     /// Values that fail FF1 eligibility (domain too small, whitespace,
     /// non-ASCII alphabet). Routed here at registration with explicit
@@ -586,5 +618,58 @@ mod tests {
         assert!(t
             .try_restore(&scrubbed, std::slice::from_ref(&restorer_reg))
             .is_none());
+    }
+
+    // ----- Debug-format redaction -----
+
+    #[test]
+    fn fpe_registration_debug_redacts_value() {
+        let secret = "sk-test-supersecretbodyxyz12";
+        let r = reg(secret, "sk-test-", Alphabet::BASE62, [0u8; 16]);
+        let s = format!("{r:?}");
+        assert!(
+            !s.contains(secret),
+            "FpeRegistration Debug leaked the registered value: {s}"
+        );
+        assert!(
+            s.contains("<redacted>"),
+            "FpeRegistration Debug missing the redaction marker: {s}"
+        );
+        // The non-secret fields stay visible so debug output is still useful.
+        assert!(s.contains("sk-test-"));
+        assert!(s.contains("label"));
+    }
+
+    #[test]
+    fn session_registration_debug_redacts_value() {
+        let secret = "alice@example.com";
+        let r = SessionRegistration {
+            label: "test".to_string(),
+            value: Zeroizing::new(secret.to_string()),
+            kind: SessionFakeKind::Pii(PiiKind::Email),
+        };
+        let s = format!("{r:?}");
+        assert!(
+            !s.contains(secret),
+            "SessionRegistration Debug leaked the registered value: {s}"
+        );
+        assert!(
+            s.contains("<redacted>"),
+            "SessionRegistration Debug missing the redaction marker: {s}"
+        );
+        assert!(s.contains("Email"));
+    }
+
+    #[test]
+    fn registered_value_enum_debug_redacts_value() {
+        // The enum derives Debug — its variants must rely on each
+        // inner type's redacted Debug, not on a separate code path.
+        let secret = "sk-test-anothersecretbody1234";
+        let r = RegisteredValue::Fpe(reg(secret, "sk-test-", Alphabet::BASE62, [0u8; 16]));
+        let s = format!("{r:?}");
+        assert!(
+            !s.contains(secret),
+            "RegisteredValue::Fpe Debug leaked the registered value: {s}"
+        );
     }
 }
