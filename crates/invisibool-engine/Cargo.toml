@@ -25,5 +25,12 @@ zeroize = { workspace = true }
 [dev-dependencies]
 criterion = { workspace = true }
 
+# `harness = false` because the bench file calls `criterion_main!`. Without
+# this flag Cargo links libtest's default harness in addition, and Criterion
+# emits a runtime panic at startup.
+[[bench]]
+name = "scrub"
+harness = false
+
 [lints]
 workspace = true
