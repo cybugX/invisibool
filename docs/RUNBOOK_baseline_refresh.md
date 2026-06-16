@@ -1,6 +1,6 @@
 # Runbook: refresh the bench baseline
 
-This runbook covers `bench-baseline.json` — the file the CI
+This runbook covers `bench-baseline.json` - the file the CI
 `bench-regression` job compares each PR's measured Criterion medians
 against. The bench-regression job fails iff a tracked bench's measured
 median exceeds `regression_factor` (default `2.0`) times the matching
@@ -9,7 +9,7 @@ entry in `baselines_ns`.
 ## When to refresh
 
 Refresh the baseline when one of the following is true. Do **not**
-refresh as a routine activity — every refresh ratchets the gate's
+refresh as a routine activity - every refresh ratchets the gate's
 sensitivity and a casual refresh hides a real regression.
 
 1. **Runner-class deprecation.** GitHub announces deprecation of
@@ -30,7 +30,7 @@ sensitivity and a casual refresh hides a real regression.
 ## How to refresh
 
 The refresh is a CI-only operation. Do not run `cargo bench` on a
-developer machine and commit the resulting numbers — developer
+developer machine and commit the resulting numbers - developer
 hardware varies wildly from CI runners, so a dev-box baseline either
 flakes the gate immediately or has to be loosened into uselessness.
 
@@ -63,21 +63,21 @@ flakes the gate immediately or has to be loosened into uselessness.
 4. **Open a PR.** Replace `bench-baseline.json` at the repo root with
    the copied JSON, commit, and open a pull request. The PR description
    should state which of the three refresh triggers above applies and
-   include a diff of the old vs. new `baselines_ns` numbers — orders of
+   include a diff of the old vs. new `baselines_ns` numbers - orders of
    magnitude apart between old and new means something is wrong (wrong
    runner class, wrong bench, wrong corpus); a few percent or low tens
    of percent is normal for a runner-class flip.
 5. **Verify the diff sanity-checks.** Read the per-bench diff:
-   - `engine_scrub/prose_2kb_three_secrets/2048` — the
+   - `engine_scrub/prose_2kb_three_secrets/2048` - the
      latency-critical case; the new median should still be well inside
      the project's per-call goal of p50 < 1 ms.
-   - `engine_scrub/source_64kb_no_secrets/65536` — no-match fast path
+   - `engine_scrub/source_64kb_no_secrets/65536` - no-match fast path
      at moderate size; should be a small handful of microseconds.
-   - `engine_scrub/log_1mb_no_secrets/1048576` — no-match path
+   - `engine_scrub/log_1mb_no_secrets/1048576` - no-match path
      scaled; should be tens of microseconds, scaling roughly linearly
      with size from the 64 KB case.
 
-   If any new number is outside its rough range, do not merge — the
+   If any new number is outside its rough range, do not merge - the
    regen run was disturbed (a noisy neighbour on the shared runner is
    the most common cause). Re-run the dispatch and use the second
    run's JSON.
@@ -90,6 +90,6 @@ flakes the gate immediately or has to be loosened into uselessness.
 On a fresh repo, `bench-baseline.json` ships with
 `pending_first_ci_baseline: true` and an empty `baselines_ns`. While
 that flag is true, `bench-regression.py` prints the per-PR informational
-table and exits zero — no tripwire fires. The first refresh per the
+table and exits zero - no tripwire fires. The first refresh per the
 steps above flips the flag to `false` and populates `baselines_ns`,
 which is when the gate goes live.

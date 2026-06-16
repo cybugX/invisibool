@@ -7,7 +7,7 @@
 //! Invisibool from detection-only tools.
 //!
 //! The automaton is built ONCE at vault load/update time and reused
-//! across every scan — never rebuilt per request. Per-request rebuilds
+//! across every scan - never rebuilt per request. Per-request rebuilds
 //! would burn the project's latency budget on a structure that only
 //! changes when the user runs `register` or `forget`.
 
@@ -32,7 +32,7 @@ impl ExactMatcher {
     /// Each value's index in this iterator is its `value_id` in returned
     /// matches.
     ///
-    /// Match policy: **leftmost-longest** — when registered "abc" and
+    /// Match policy: **leftmost-longest** - when registered "abc" and
     /// "abcdef" both match at the same offset, "abcdef" wins. Substituting
     /// the longer registered value is the safer default because picking
     /// the shorter one would leave a partial-secret tail in the output.
@@ -125,7 +125,7 @@ mod tests {
     #[test]
     fn longest_match_wins_at_same_offset() {
         // Both "abc" and "abcdef" registered; input contains "abcdef".
-        // Leftmost-longest must pick "abcdef" — picking the shorter would
+        // Leftmost-longest must pick "abcdef" - picking the shorter would
         // leave "def" un-scrubbed in the output, the failure mode this
         // policy exists to prevent.
         let m = ExactMatcher::build(["abc", "abcdef"]).unwrap();
@@ -163,7 +163,7 @@ mod tests {
     #[test]
     fn byte_offsets_correct_through_multibyte_utf8() {
         // 'é' is 2 bytes in UTF-8. The pattern "alpha" starts after
-        // "héllo " — verify the byte slice round-trips correctly rather
+        // "héllo " - verify the byte slice round-trips correctly rather
         // than hard-coding the offset.
         let m = ExactMatcher::build(["alpha"]).unwrap();
         let input = "héllo alpha";

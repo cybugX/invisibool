@@ -11,15 +11,15 @@
 //! Runtime construction goes through `Alphabet::try_custom()` and is
 //! validated against:
 //!
-//! - **ASCII only** — multi-byte UTF-8 cannot be safely indexed by
+//! - **ASCII only** - multi-byte UTF-8 cannot be safely indexed by
 //!   byte offset.
-//! - **No whitespace** — whitespace characters make candidate boundaries
+//! - **No whitespace** - whitespace characters make candidate boundaries
 //!   undefinable in free text: a fake containing a space would split
 //!   into two tokens at the matcher and the restore pass could not
 //!   re-assemble the original span.
-//! - **All distinct** — every symbol must appear at most once; otherwise
+//! - **All distinct** - every symbol must appear at most once; otherwise
 //!   `index_of` would be ambiguous.
-//! - **Radix in `[2, 65535]`** — NIST SP 800-38G's FF1 domain bounds.
+//! - **Radix in `[2, 65535]`** - NIST SP 800-38G's FF1 domain bounds.
 //!
 //! Construction validation closes the gap that a misconfigured detection
 //! rule (M2) cannot smuggle a non-ASCII or zero-symbol alphabet into FF1
@@ -34,22 +34,22 @@ pub struct Alphabet {
 }
 
 impl Alphabet {
-    /// `0-9 A-Z a-z` — radix 62.
+    /// `0-9 A-Z a-z` - radix 62.
     pub const BASE62: Self =
         Self::unchecked("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
-    /// RFC 4648 base32: `A-Z 2-7` — radix 32.
+    /// RFC 4648 base32: `A-Z 2-7` - radix 32.
     pub const BASE32: Self = Self::unchecked("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567");
-    /// `0-9 a-f` — radix 16.
+    /// `0-9 a-f` - radix 16.
     pub const HEX_LOWER: Self = Self::unchecked("0123456789abcdef");
-    /// `0-9 A-F` — radix 16.
+    /// `0-9 A-F` - radix 16.
     pub const HEX_UPPER: Self = Self::unchecked("0123456789ABCDEF");
-    /// `0-9` — radix 10.
+    /// `0-9` - radix 10.
     pub const DIGITS: Self = Self::unchecked("0123456789");
-    /// `a-z` — radix 26.
+    /// `a-z` - radix 26.
     pub const ALPHA_LOWER: Self = Self::unchecked("abcdefghijklmnopqrstuvwxyz");
-    /// `A-Z` — radix 26.
+    /// `A-Z` - radix 26.
     pub const ALPHA_UPPER: Self = Self::unchecked("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-    /// `0-9 a-z` — radix 36.
+    /// `0-9 a-z` - radix 36.
     pub const BASE36_LOWER: Self = Self::unchecked("0123456789abcdefghijklmnopqrstuvwxyz");
 
     /// Build without validation. Reserved for the hand-curated named

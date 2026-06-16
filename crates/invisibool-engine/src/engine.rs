@@ -5,37 +5,37 @@
 //!
 //! Scrub is end-to-end for every registered-value variant:
 //!
-//! - **FF1-eligible** registered values go through `FpeTokenizer` —
+//! - **FF1-eligible** registered values go through `FpeTokenizer` -
 //!   round-trip restore works in any process that loads the same vault.
 //! - **PII** (Email / IPv4 / Phone) goes through the reserved-range
-//!   generators (`example.com`, RFC 5737, the 555-01XX phone exchange)
-//!   — output is restorable in long-lived processes via the session
-//!   map, but *not* in two-command terminal mode.
-//! - **Cards** go through `fake_card_visa16` — same restorability story.
-//! - **Formatless** values get a MAC-tagged fake of matching length —
+//!   generators (`example.com`, RFC 5737, the 555-01XX phone exchange);
+//!   output is restorable in long-lived processes via the session map,
+//!   but *not* in two-command terminal mode.
+//! - **Cards** go through `fake_card_visa16` - same restorability story.
+//! - **Formatless** values get a MAC-tagged fake of matching length -
 //!   `mac::make_macfake` derives a deterministic body from
 //!   `HKDF(session_mac_key, real)` and appends a `K`-character MAC
 //!   tail so the idempotence layer can recognise the fake on re-scrub.
 //!   Short-fake carve-out: if the registered value is too short to
-//!   carry a MAC tail (`len <= K`), the engine FAILS CLOSED — the
+//!   carry a MAC tail (`len <= K`), the engine FAILS CLOSED - the
 //!   original is removed and replaced with `REDACTION_PLACEHOLDER`
 //!   and a `RedactedFormatless` notice is recorded.
 //!
 //! ## Fail-closed contract
 //!
 //! Every code path that cannot produce a valid fake replaces the
-//! original with `REDACTION_PLACEHOLDER` and emits a `Redacted*` notice
-//! — no path ever leaves a real, unscrubbed secret in the returned
+//! original with `REDACTION_PLACEHOLDER` and emits a `Redacted*` notice;
+//! no path ever leaves a real, unscrubbed secret in the returned
 //! output. The three branches that fail closed today are:
 //!
 //! 1. FF1 scrub returns an error (a vault inconsistency between
 //!    registration-time eligibility and scrub-time eligibility).
 //! 2. `fake_card_visa16` returns None (a registered card whose layout
 //!    isn't the 16-digit Visa shape the M0b generator understands).
-//! 3. `Formatless` variant — covered above.
+//! 3. `Formatless` variant - covered above.
 //!
 //! Restore is **FF1-only at this layer**. Reserved-range and MAC-tagged
-//! fakes ship through restore unchanged — the idempotence checks
+//! fakes ship through restore unchanged - the idempotence checks
 //! recognise them as "already fake" so they pass through cleanly, and
 //! the M1 CLI's `--session` path will add the session-map restore on
 //! top.
@@ -44,7 +44,7 @@
 //!
 //! M0b ships the stateless-FF1 mode. A long-lived "session" mode that
 //! holds a `SessionMap` for restorability of non-FF1 types is the next
-//! integration layer — the session-map type is implemented inside the
+//! integration layer - the session-map type is implemented inside the
 //! engine already; M1's `watch` daemon and the CLI's `--session` flag
 //! wire it into a live restore path.
 
@@ -102,7 +102,7 @@ impl SessionStore<'_> {
             SessionStore::None => false,
             SessionStore::Map { session, now } => {
                 // `get_or_insert` is the simplest stable API on the
-                // session map — for a fresh real value it inserts the
+                // session map - for a fresh real value it inserts the
                 // pair via the closure; for a repeat it returns the
                 // existing fake (which equals the one we just generated
                 // because all our session-fake generators are
@@ -139,12 +139,12 @@ impl std::error::Error for BuildError {}
 /// real text), ASCII-only (survives every transport), and carries no
 /// label content (so the LLM doesn't get even that hint).
 ///
-/// The leak harness MUST treat this marker as a known sentinel — if a
+/// The leak harness MUST treat this marker as a known sentinel - if a
 /// future change moves it, the matching assertion must move too.
 pub const REDACTION_PLACEHOLDER: &str = "[INVISIBOOL_UNRESTORABLE]";
 
 /// Outcome of `Engine::scrub`. `notices` carries the end-of-scrub
-/// disclosure list — the M1 CLI formats this for the user.
+/// disclosure list - the M1 CLI formats this for the user.
 ///
 /// `#[must_use]` so dropping the result without consulting `notices`
 /// becomes a compile warning. Callers may still explicitly discard the
@@ -254,7 +254,7 @@ impl Engine {
     /// runs idempotence on each, and dispatches by registration kind.
     ///
     /// Stateless mode: session-mapped fakes (PII, Card, Formatless) are
-    /// emitted with a `SessionMappedUnrestorable` notice — the user is
+    /// emitted with a `SessionMappedUnrestorable` notice - the user is
     /// told the fake cannot be restored without a long-lived session.
     /// For an in-process session-mapped round-trip, use
     /// [`Engine::scrub_with_session`] instead.
@@ -265,7 +265,7 @@ impl Engine {
     /// Scrub the input AND store each session-mapped `(real, fake)`
     /// pair in `session` so a later [`Engine::restore_with_session`]
     /// call can recover the original. In this mode the
-    /// `SessionMappedUnrestorable` notice is suppressed — the fake IS
+    /// `SessionMappedUnrestorable` notice is suppressed - the fake IS
     /// restorable in-process through `session`.
     ///
     /// `now` is the timestamp handed to the session map's LRU/TTL
@@ -324,7 +324,7 @@ impl Engine {
                             // Fail CLOSED: never leak the real value.
                             // Reaching this branch means eligibility
                             // passed at registration but failed at scrub
-                            // — a vault inconsistency that must not be
+                            // - a vault inconsistency that must not be
                             // papered over by passing the secret through.
                             output.push_str(REDACTION_PLACEHOLDER);
                             scrubbed_count += 1;
@@ -388,7 +388,7 @@ impl Engine {
                         }
                         (None, _) => {
                             // Fail CLOSED: a non-Formatless generator
-                            // returned None — e.g. a registered card
+                            // returned None - e.g. a registered card
                             // whose layout isn't the 16-digit Visa shape
                             // `fake_card_visa16` currently understands.
                             output.push_str(REDACTION_PLACEHOLDER);
@@ -414,7 +414,7 @@ impl Engine {
 
     /// Restore FF1 fakes in `input` back to their registered plaintexts.
     /// Non-FF1 fakes (reserved-range, MAC-tagged) pass through
-    /// unchanged — that's the stateless-mode behaviour, and idempotence
+    /// unchanged - that's the stateless-mode behaviour, and idempotence
     /// confirms they're recognisable as fakes (not real secrets) so
     /// they're safe to leave in.
     pub fn restore(&self, input: &str) -> EngineRestoreResult {
@@ -602,18 +602,18 @@ mod tests {
         assert_eq!(restored.output, input);
     }
 
-    // CAVEAT — also tracked in the threat model:
+    // CAVEAT - also tracked in the threat model:
     //
     // This test asserts the equality scrub(scrub(x)) == scrub(x) at the
     // engine level. In M0b the engine uses ONLY exact-match detection
     // (pattern detection is built but waits for M2's rule corpus). The
     // first scrub replaces the registered real value with an FF1 fake;
     // the second scrub's Aho-Corasick automaton therefore finds nothing
-    // in the input and the equality holds trivially — the engine's
+    // in the input and the equality holds trivially - the engine's
     // call to `IdempotenceContext::classify` does not run.
     //
-    // The per-candidate idempotence proof — that
-    // `classify(fake_of(real)) == NoOp(Ff1DecryptedToRegistered)` —
+    // The per-candidate idempotence proof - that
+    // `classify(fake_of(real)) == NoOp(Ff1DecryptedToRegistered)` -
     // lives in `idempotence.rs::scrub_then_scrub_is_idempotent_for_ff1_fakes`.
     // That is the load-bearing test today.
     //
@@ -637,7 +637,7 @@ mod tests {
         let input = "scrub me: sk-ant-abcdefghijklmnopqrst end";
         let s1 = engine.scrub(input);
         let s2 = engine.scrub(&s1.output);
-        // Second scrub leaves the FF1 fake alone — idempotence check (a) fires.
+        // Second scrub leaves the FF1 fake alone - idempotence check (a) fires.
         assert_eq!(s1.output, s2.output);
         // And the second scrub reports zero new tokenisations.
         assert_eq!(s2.scrubbed_count, 0);
@@ -762,7 +762,7 @@ mod tests {
         .unwrap();
         let input = "my pin is ABCD";
         let result = engine.scrub(input);
-        // Original is REMOVED from the output — not papered over by a
+        // Original is REMOVED from the output - not papered over by a
         // notice that the user might miss.
         assert!(
             !result.output.contains("ABCD"),
@@ -849,8 +849,8 @@ mod tests {
         // time: prefix == value means the body is empty, so radix^0 = 1
         // falls below the 10^6 domain floor.
         //
-        // This shouldn't happen in practice — M4a `register` would
-        // refuse — but the engine must fail CLOSED if a corrupt or
+        // This shouldn't happen in practice - M4a `register` would
+        // refuse - but the engine must fail CLOSED if a corrupt or
         // mis-migrated vault entry slips through.
         let bad = FpeRegistration {
             label: "broken".to_string(),
@@ -919,8 +919,8 @@ mod tests {
     #[test]
     fn redaction_placeholder_content_is_pinned() {
         // If this marker ever changes silently, downstream tooling that
-        // recognises it — the leak-harness sentinel, the M1 CLI's
-        // end-of-scrub renderer — would break in subtle ways. Any
+        // recognises it - the leak-harness sentinel, the M1 CLI's
+        // end-of-scrub renderer - would break in subtle ways. Any
         // change must be deliberate and walk every consumer through.
         assert_eq!(REDACTION_PLACEHOLDER, "[INVISIBOOL_UNRESTORABLE]");
     }

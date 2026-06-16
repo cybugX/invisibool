@@ -22,7 +22,7 @@
 #     and replace the @sha256:... below.
 
 ARG RUST_VERSION=1.96.0
-# rust:1.96.0-bookworm — manifest-list digest as inspected on 2026-06-12.
+# rust:1.96.0-bookworm - manifest-list digest as inspected on 2026-06-12.
 FROM rust:${RUST_VERSION}-bookworm@sha256:19817ead3289c8c631c73df281e18b59b172f6a31f4f563290f69cddd06c30e9 AS base
 
 # Pinned versions of CI tools. Bump in their own commit with rationale.
@@ -47,7 +47,7 @@ ARG GITLEAKS_SHA256=551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f24
 # --- OS deps -----------------------------------------------------------------
 # Minimal: ca-certificates for HTTPS downloads, curl to fetch tool tarballs,
 # git for cargo-deny's advisory-DB clone. No clipboard or keychain native
-# libraries here — the test backends are in-memory; nightly OS-native smoke
+# libraries here - the test backends are in-memory; nightly OS-native smoke
 # tests run on real OS runners, not in this container.
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -105,7 +105,7 @@ RUN groupadd --gid "${USER_GID}" dev \
  # /workspace/target and the cargo caches are mount points for named volumes
  # in docker-compose.yml. Docker initializes a named volume from the image
  # path's contents and ownership on first mount, so creating these dirs with
- # dev:dev ownership now lets the empty volumes inherit it — otherwise they
+ # dev:dev ownership now lets the empty volumes inherit it - otherwise they
  # mount as root-owned and the dev user can't write to them.
 
 USER dev

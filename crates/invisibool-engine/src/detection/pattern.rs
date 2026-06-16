@@ -4,7 +4,7 @@
 //! linear pass that reports WHICH rules matched. To recover WHERE each
 //! match landed, only the matched rules' individual `Regex::find_iter`
 //! are run. In the common "input contained no secrets" case the
-//! RegexSet pass is the only work performed — zero per-rule iteration.
+//! RegexSet pass is the only work performed - zero per-rule iteration.
 //!
 //! The `regex` crate is non-backtracking by construction, so ReDoS is
 //! ruled out at the type-system level (no further config needed).

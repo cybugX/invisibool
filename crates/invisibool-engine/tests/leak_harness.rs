@@ -2,7 +2,7 @@
 //!
 //! Asserts the engine's privacy contract on a fresh canary per run:
 //! a registered value's plaintext appears only on restore's intended
-//! primary output channel — never in scrub output, never in the
+//! primary output channel - never in scrub output, never in the
 //! `{:?}` debug-format of any engine result or registration, never in
 //! the engine's `REDACTION_PLACEHOLDER` sentinel.
 //!
@@ -26,15 +26,15 @@
 //! - Card: the test-BIN generator emits a `4242 ...` fake; the canary
 //!   must not survive.
 //!
-//! Fail-closed paths — the leak class this harness exists to catch.
+//! Fail-closed paths - the leak class this harness exists to catch.
 //! Each branch must keep the canary out of every channel; the
 //! Formatless branch additionally splits by length:
 //!
-//! - Formatless long-body (`> K` chars) — engine emits a MAC-tagged
+//! - Formatless long-body (`> K` chars) - engine emits a MAC-tagged
 //!   fake of matching length. Test asserts both the leak-contract AND
 //!   that the emitted fake verifies under the session MAC key (so the
 //!   idempotence layer recognises it on re-scrub).
-//! - Formatless short-body (`<= K` chars, the carve-out) — engine emits
+//! - Formatless short-body (`<= K` chars, the carve-out) - engine emits
 //!   `REDACTION_PLACEHOLDER` + `ScrubNotice::RedactedFormatless`.
 //! - FF1 eligibility re-check failure at scrub time (corrupt or
 //!   migrated vault entry) → `REDACTION_PLACEHOLDER` +
@@ -49,7 +49,7 @@
 //!   Formatless canary. The scrub-half assertions are unchanged from
 //!   the leak-contract (canary absent from every scrub channel); the
 //!   restore-half intentionally violates the contract (the canary IS
-//!   expected back — that's the entire purpose of restore).
+//!   expected back - that's the entire purpose of restore).
 //!
 //! Each test runs `ROUNDS` times with independent canaries so a one-in-
 //! a-bunch lucky alignment cannot mask a leak.
@@ -132,7 +132,7 @@ fn digits(state: &mut u64, len: usize) -> String {
 /// - or the `REDACTION_PLACEHOLDER` sentinel (pinned so a future
 ///   templated placeholder can't accidentally interpolate the canary).
 ///
-/// Restore output is intentionally excluded — that is the one channel
+/// Restore output is intentionally excluded - that is the one channel
 /// the canary is supposed to come back through.
 fn assert_no_leak_in_scrub(
     canary: &str,
@@ -182,7 +182,7 @@ fn assert_failclose_branch(
     assert!(
         scrub.output.contains(REDACTION_PLACEHOLDER),
         "[{path} #{round}] redaction placeholder not emitted; output was: {}",
-        // Don't print the output verbatim if it contains the canary —
+        // Don't print the output verbatim if it contains the canary -
         // but at this point we've already asserted it doesn't via the
         // caller's earlier assert_no_leak_in_scrub call. Still, defend
         // in depth by replacing the canary with a sentinel before
@@ -317,7 +317,7 @@ fn pii_email_path_does_not_leak() {
 fn card_path_does_not_leak() {
     let mut state = seed();
     for round in 0..ROUNDS {
-        // 4xxx xxxx xxxx xxxx — Visa shape, runtime-generated digits.
+        // 4xxx xxxx xxxx xxxx - Visa shape, runtime-generated digits.
         // The leading 4 is fixed (Visa BIN); the remaining 15 are random
         // so the canary is fresh per round.
         let mut canary = String::with_capacity(19);
@@ -349,7 +349,7 @@ fn card_path_does_not_leak() {
 // ---------- fail-closed branches (the leak class this harness exists for) ----------
 //
 // Three engine branches replace the original value with REDACTION_PLACEHOLDER
-// when a fake cannot be produced. The harness exercises each by name —
+// when a fake cannot be produced. The harness exercises each by name -
 // these are the paths that USED to be capable of leaking a real secret
 // back through to the LLM and that the engine's fail-closed contract
 // turned into redactions instead. Each test asserts both the leak-
@@ -361,7 +361,7 @@ fn formatless_short_body_carveout_redacts_and_does_not_leak() {
     // Short-fake carve-out: a 6-char Formatless body cannot carry a
     // BASE62 MAC tail (K = 6, body needs > K), so the engine fails
     // closed with the redaction placeholder. The leak-contract still
-    // holds — the canary must not survive in any escape channel.
+    // holds - the canary must not survive in any escape channel.
     let mut state = seed();
     for round in 0..ROUNDS {
         let canary = lowercase_alnum(&mut state, 6);
@@ -413,11 +413,11 @@ fn formatless_long_body_mac_fake_does_not_leak() {
 
         let scrub = engine.scrub(&input);
 
-        // The leak-contract — preserved verbatim from the carve-out
+        // The leak-contract - preserved verbatim from the carve-out
         // shape so this stronger test cannot weaken the guarantee.
         assert_no_leak_in_scrub(&canary, &scrub, &regs_dbg, "formatless-long", round);
 
-        // Positive shape: a MAC-tagged fake — NOT the placeholder —
+        // Positive shape: a MAC-tagged fake - NOT the placeholder -
         // sits in the canary's place, and it verifies under the same
         // session MAC key the engine was built with.
         assert!(
@@ -451,7 +451,7 @@ fn formatless_mac_fake_round_trips_through_session_map() {
     // session map. scrub_with_session emits the fake AND stores
     // (real, fake); restore_with_session looks the fake up and brings
     // the original back verbatim. The leak-contract holds during the
-    // scrub half — canary absent from every scrub channel — and is
+    // scrub half - canary absent from every scrub channel - and is
     // intentionally violated during the restore half (the canary IS
     // supposed to come back, that's the entire point of restore).
     use invisibool_engine::tokenizer::session::SessionMap;
@@ -507,7 +507,7 @@ fn ff1_eligibility_failure_redacts_and_does_not_leak() {
     // through that fails the scrub-time re-check, the engine MUST
     // redact rather than let the value pass through. The smallest way
     // to trigger this is to register a value whose `prefix` equals the
-    // whole value — body length 0, so radix^0 = 1 is below the FF1
+    // whole value - body length 0, so radix^0 = 1 is below the FF1
     // domain floor and the eligibility check fails at scrub time.
     let mut state = seed();
     for round in 0..ROUNDS {
@@ -550,7 +550,7 @@ fn card_layout_mismatch_redacts_and_does_not_leak() {
     // The session-mapped card generator only understands the 16-digit
     // Visa shape `4xxx xxxx xxxx xxxx`. An Amex-shaped 15-digit
     // registration (`3xxx xxxxxx xxxxx`) routes into the Card path,
-    // `fake_card_visa16` returns None, and the engine fails closed —
+    // `fake_card_visa16` returns None, and the engine fails closed -
     // the canary must not survive.
     let mut state = seed();
     for round in 0..ROUNDS {

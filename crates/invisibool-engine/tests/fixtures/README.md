@@ -7,9 +7,9 @@ committed baseline.
 
 | File             | Size        | Registered hits | What it measures                                       |
 | ---------------- | ----------- | --------------- | ------------------------------------------------------ |
-| `prose_2kb.txt`  |     2,048 B |               3 | Realistic short LLM prompt — the latency-critical case |
-| `source_64kb.rs` |    65,536 B |               0 | Moderate no-match input — matcher scan throughput      |
-| `log_1mb.log`    | 1,048,576 B |               0 | Large-input no-match — matcher throughput at scale     |
+| `prose_2kb.txt`  |     2,048 B |               3 | Realistic short LLM prompt - the latency-critical case |
+| `source_64kb.rs` |    65,536 B |               0 | Moderate no-match input - matcher scan throughput      |
+| `log_1mb.log`    | 1,048,576 B |               0 | Large-input no-match - matcher throughput at scale     |
 
 The corpus lives under `tests/fixtures/` (not next to the bench file)
 so the repo-wide secret-scanner allowlist can be narrowly scoped to
@@ -33,7 +33,7 @@ fully scanned.
 
 These files are produced by a deterministic generator. If you change the
 generator, re-run it and commit the resulting bytes alongside the source
-change in the same commit — otherwise the CI regression tripwire would
+change in the same commit - otherwise the CI regression tripwire would
 be comparing measurements against bytes that no longer match what the
 bench actually scrubs.
 
@@ -45,5 +45,5 @@ After regenerating, run `git diff -- crates/invisibool-engine/tests/fixtures/`
 to inspect. If either the prose hand-text or the procedural log/source
 shape changed, follow `docs/RUNBOOK_baseline_refresh.md` to refresh the
 committed `bench-baseline.json` from a CI run on the pinned runner class
-— the latency numbers depend on the exact input bytes, so a fixture edit
+- the latency numbers depend on the exact input bytes, so a fixture edit
 and a baseline refresh always travel together.

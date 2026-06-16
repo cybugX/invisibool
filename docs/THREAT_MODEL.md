@@ -3,9 +3,9 @@
 This document is the honest accounting of what Invisibool's engine
 defends against, what it does not, and where the residual risk sits.
 It covers the engine library shipped at M0b (detection + tokenization
-+ scrub/restore API). Surfaces that don't exist yet — the CLI, the
++ scrub/restore API). Surfaces that don't exist yet - the CLI, the
 clipboard `watch` daemon, the vault file, the OS-keychain backend,
-the control channel, `forget`/`rotate-key` — are listed at the end as
+the control channel, `forget`/`rotate-key` - are listed at the end as
 **deferred rows** so this file grows additively as those milestones
 land, rather than being rewritten.
 
@@ -38,15 +38,15 @@ hits it before installing.
 **Threat.** The exact-match detector is one Aho-Corasick automaton built
 once at engine construction over the entire registered-value set. While
 the engine process is running, every registered plaintext is resident in
-the automaton's internal tables. A memory dump of the process — by an
+the automaton's internal tables. A memory dump of the process - by an
 attacker with code execution as the same user, by a crash-dump uploader,
-by a debugger attaching to the live process — recovers every registered
+by a debugger attaching to the live process - recovers every registered
 secret in clear bytes.
 
 **Mitigation.** The engine itself carries `#![forbid(unsafe_code)]`
 and has zero network dependencies, so the plaintext cannot exit
 through the engine's own code paths. We do not claim the secrets are
-loaded individually or kept encrypted in memory — the warm automaton
+loaded individually or kept encrypted in memory - the warm automaton
 makes that impossible by design. M1 will bound the in-memory window:
 the automaton will be built only when the vault is loaded and dropped
 on idle-lock (planned to AEAD-encrypt the session map and drop the
@@ -67,7 +67,7 @@ the engine process as a single piece of secret-holding state.
 
 **Threat.** `std::collections::HashMap` grows by copying keys and
 values into a new allocation and freeing the old one. The freed slot
-is not zeroized — its bytes linger until the allocator overwrites
+is not zeroized - its bytes linger until the allocator overwrites
 them. The session map holds real values in two places (the
 `Zeroizing<String>` inside each Entry, and a plaintext `String` key
 in `by_real`). Both copies are wiped on the eviction paths we
@@ -82,7 +82,7 @@ overwrite, `Drop`) wipe both copies of each evicted real value.
 layer and cannot be closed without a custom zeroizing hash table.
 The OS-keychain holding the vault key at rest and the daemon's
 process-isolation boundary will be the real defences against the
-threat this residue creates — both arrive at M1. At M0b the engine
+threat this residue creates - both arrive at M1. At M0b the engine
 holds its MAC key as plain bytes passed in at construction, so the
 residue is fully exposed to anyone who can read the engine
 process's memory. In-memory wipe is a hardening measure, not a
@@ -95,7 +95,7 @@ guarantee, in either case.
 **Threat.** The session map's canonical copy of each real value is
 `Zeroizing`-wrapped, so it is wiped on eviction. `restore()` hands
 the caller a freshly-allocated `String`. Once that clone crosses the
-function boundary, the map cannot track its lifetime — if the caller
+function boundary, the map cannot track its lifetime - if the caller
 holds it in a non-wiping container, the plaintext lingers until the
 allocator reuses the memory.
 
@@ -106,21 +106,21 @@ caller asked for; it does not retain its own copy.
 
 **Residual.** Caller-side lifetime is on the caller. The M1 CLI's
 restore-to-stdout path will be the natural short-lifetime case
-(bytes flushed to the terminal, buffer dropped) — that path does not
+(bytes flushed to the terminal, buffer dropped) - that path does not
 exist yet at M0b. A future engine API revision may push
 `Zeroizing<String>` (or `SecretBox<String>`) one level out so callers
 inherit auto-wipe; this is a known follow-up.
 
 ---
 
-### 4. FF1 is deterministic — same `(key, tweak, value)` always produces the same fake
+### 4. FF1 is deterministic - same `(key, tweak, value)` always produces the same fake
 
 **Threat.** Two scrubs of the same registered value, in the same
 process or in two different processes loading the same vault, produce
 the same fake. An attacker who sees both scrubbed outputs can cluster
 "these two prompts referenced the same underlying secret" without
-ever recovering the secret itself. Format leakage on top — the fake
-preserves length, alphabet, and any literal prefix — narrows the
+ever recovering the secret itself. Format leakage on top - the fake
+preserves length, alphabet, and any literal prefix - narrows the
 guess about what kind of secret it was even if the bytes are
 unreadable.
 
@@ -130,7 +130,7 @@ per-value 16-byte tweak prevents cross-value linkability (each
 registered secret encrypts under its own pseudorandom permutation
 even when alphabets match). Cards never go through FF1 because the
 card-number domain is too small for FF1's bijection to be safe
-against a guess-and-check attacker — they take the test-BIN path
+against a guess-and-check attacker - they take the test-BIN path
 instead.
 
 **Residual.** Within a single registered value, fake-equality reveals
@@ -147,16 +147,16 @@ service.
 **Threat.** Every FF1 fake is the AES-256-FF1 encryption of the real
 value under a subkey derived from the vault key via HKDF-SHA-256
 with a versioned info label (`invisibool-ff1-key-v1`) and the
-per-value tweak. An attacker who steals the vault key — by
+per-value tweak. An attacker who steals the vault key - by
 extracting it from the OS
 keychain after compromising the user account, by reading it from a
 crashed process's memory, by social-engineering the user into running
-a malicious binary — can decrypt every FF1 fake the user has ever
+a malicious binary - can decrypt every FF1 fake the user has ever
 emitted. That includes fakes sitting in third-party LLM logs the
 user no longer controls.
 
 **Mitigation.** At M1 the vault key will sit behind the OS-keychain
-boundary — the same boundary the operating system uses to protect
+boundary - the same boundary the operating system uses to protect
 every other application's stored credentials. At M4a a `rotate-key`
 command will generate a fresh vault key, re-encrypt the registered
 values under it, and (by default) destroy the old key, after which
@@ -172,7 +172,7 @@ came from and what wipes it.
 **Residual.** Key theft is fatal to past confidentiality of scrubbed
 prompts. Realistically, an attacker who can read the OS keychain has
 usually already compromised the machine, so the incremental risk is
-modest — but it is real, it is retroactive, and it is documented
+modest - but it is real, it is retroactive, and it is documented
 honestly here rather than hidden behind "we encrypt your secrets"
 language that overclaims.
 
@@ -188,7 +188,7 @@ generate MAC-tagged fakes (the Formatless branch) pay the same
 false-positive rate on a re-scrub round.
 
 **Mitigation.** The MAC tail length per alphabet is chosen to meet a
-32-bit floor — `K = ceil(32 / log2(radix))`. The actual rate depends
+32-bit floor - `K = ceil(32 / log2(radix))`. The actual rate depends
 on the alphabet: BASE62 reaches ~2^-35.7, hex sits at exactly 2^-32,
 digits at ~2^-33.2. The 32-bit floor is the conservative number to
 quote. Registered values bypass this risk entirely via the exact-
@@ -199,7 +199,7 @@ silently passed through by a MAC coincidence.
 **Residual.** A detected-but-unregistered high-entropy secret remains
 exposed at the 32-bit-floor false-positive rate. At typical prompt
 volumes this is an acceptable rare-event cost. If you registered the
-value first, the risk is zero — registration is the recommended way
+value first, the risk is zero - registration is the recommended way
 to protect a value you specifically care about.
 
 ---
@@ -212,7 +212,7 @@ an FF1 registration whose eligibility re-check fails at scrub time
 (corrupt or migrated vault entry), and a session-mapped card whose
 layout the test-BIN generator does not recognise (e.g. a 15-digit
 Amex shape). In each, the obvious "easy" fallback would be to leave
-the original value in the output and emit a warning notice — which
+the original value in the output and emit a warning notice - which
 is exactly the leak class that gets the tool uninstalled the first
 time a user pastes their fallback-notice'd prompt into an LLM
 unaware.
@@ -249,8 +249,8 @@ secrets. They appear unredacted in the registered value itself
 (the prefix is the literal beginning of the value) and in the FF1
 restore profile-matching logic (which needs them to identify
 candidates). The future M4a `list` command will print masked
-previews of the form `sk-ant-…AB12` for the same reason — prefix
-visible, body redacted — so this assumption holds across the whole
+previews of the form `sk-ant-…AB12` for the same reason - prefix
+visible, body redacted - so this assumption holds across the whole
 surface, not only the engine internals. Redacting the prefix in
 `Debug` would either render the debug output useless or require a
 parallel non-redacted path. The leak harness's debug-format checks
@@ -273,8 +273,8 @@ tool.
 **Threat.** A registered Formatless value (long enough to carry a
 MAC tail) is scrubbed into a MAC-tagged fake, but the mapping from
 fake back to real lives only in the in-memory session map. A user
-running two-command CLI flow at M0b — `invisibool scrub < input >
-scrubbed`, then later `invisibool restore < reply > output` — gets
+running two-command CLI flow at M0b - `invisibool scrub < input >
+scrubbed`, then later `invisibool restore < reply > output` - gets
 no restoration of Formatless values across the two process
 boundaries. The fake passes through restore untouched, and the
 original is gone.
@@ -286,7 +286,7 @@ in-process round-trip works today via `scrub_with_session` +
 `restore_with_session`, which is the path M1's `watch` daemon will
 hold open. M1 will also add an explicit `--session` flag for
 two-command terminal users who want the AEAD-encrypted on-disk
-session file — that flag does not yet exist.
+session file - that flag does not yet exist.
 
 **Residual.** Until M1 lands, Formatless registrations are useful
 only inside long-lived processes (or as a fail-closed scrub-only
@@ -306,7 +306,7 @@ session map returns the same fake for the same input every call,
 so an attacker who sees several scrubbed prompts can cluster which
 ones referenced the same original even though they cannot recover
 the original. The reserved-range fakes are also distinguishable as
-fake to a literate attacker — anyone who knows `@example.com` is
+fake to a literate attacker - anyone who knows `@example.com` is
 the documentation domain reads a reserved-range fake as "this used
 to be a real email".
 
@@ -332,7 +332,7 @@ operator.
 ### 11. Format-preserving fakes trip third-party secret scanners
 
 **Threat.** Invisibool's fakes are deliberately indistinguishable in
-shape from real secrets — that is the entire point of FPE. A scrubbed
+shape from real secrets - that is the entire point of FPE. A scrubbed
 prompt forwarded to an LLM provider, logged in a corporate proxy,
 copied into a ticketing system, or pushed to a code repository by a
 contributor pasting it as "what I sent the model" will be flagged
@@ -345,7 +345,7 @@ and predictably fail, but the alert has already fired.
 and cannot be closed without either degrading the fake (which
 defeats the purpose) or coordinating per-scanner signalling. We
 accept it and document it plainly. The user-side mitigation is to
-keep Invisibool output inside the LLM-prompt boundary — do not
+keep Invisibool output inside the LLM-prompt boundary - do not
 paste scrubbed text into systems that will be unhappy to see
 secret-shaped strings. If you have a security team that reviews
 exfiltration alerts, tell them Invisibool is in use so a flagged
@@ -365,15 +365,15 @@ operations from "detect → idempotence-classify → tokenize" to
 "detect → tokenize → idempotence-classify", which would silently
 double-encrypt an already-faked input on every re-scrub. The engine
 test that claims to prove `scrub(scrub(x)) == scrub(x)` at the
-engine level is the natural place to catch such a reordering — but
+engine level is the natural place to catch such a reordering - but
 at M0b the engine uses only exact-match detection. After the first
 scrub the registered value is replaced by a fake the Aho-Corasick
 automaton cannot find, so the second scrub's input contains no
 matches; the `IdempotenceContext::classify` call never runs, and
 the test passes trivially.
 
-**Mitigation.** The per-candidate idempotence proof — that
-`classify(fake_of(real)) == NoOp(Ff1DecryptedToRegistered)` — does
+**Mitigation.** The per-candidate idempotence proof - that
+`classify(fake_of(real)) == NoOp(Ff1DecryptedToRegistered)` - does
 exist and is load-bearing today: it lives in `idempotence.rs`'s
 unit tests and runs on every PR. The engine-level test's source
 also carries an explicit `// CAVEAT` block flagging this limitation
@@ -384,7 +384,7 @@ to the next reader.
 only FF1 fakes (which a pattern rule will still match) and assert
 the output is identical and `scrubbed_count == 0`. Without that
 follow-up, a detect→tokenize→classify reordering would silently
-break idempotence and cause repeated double-encryption — exactly
+break idempotence and cause repeated double-encryption - exactly
 the bug the three-check idempotence mechanism was built to prevent.
 
 ---
@@ -411,7 +411,7 @@ combined scrub cost over a committed corpus on every PR. The
 per-call latency **target** (p50 < 1 ms, p99 < 5 ms on a consistent
 machine) is the design budget this trial-decrypt loop is built to
 fit inside; the published two-number README pair will land at M4c.
-At M0b the CI regression tripwire is in bootstrap state — the
+At M0b the CI regression tripwire is in bootstrap state - the
 committed `bench-baseline.json` carries `pending_first_ci_baseline:
 true` and the first real baseline has not been captured on the
 pinned runner class yet, so the target above is the design intent,
@@ -419,7 +419,7 @@ not a measured-and-validated result.
 
 **Residual.** A vault with thousands of registered values sharing a
 single profile would push the trial-decrypt cost outside the
-target budget. We accept this — vaults that large are not the
+target budget. We accept this - vaults that large are not the
 target use case, and a future optimisation (e.g. indexing by
 profile fingerprint) is a known follow-up if the use case
 materialises.
@@ -437,23 +437,23 @@ rewritten when each milestone lands.
 | Row | Introduced at | Summary |
 |---|---|---|
 | Idle lock | M1 | When the `watch` daemon idles past its threshold, AEAD-encrypts the in-memory session map under the vault key and drops the plaintext map + key + automaton. Restorability survives idle (one keychain fetch on wake re-derives, decrypts, rebuilds). Ciphertext-at-rest in memory while idle. |
-| Clipboard history / cloud sync | M1 | Windows clipboard history, macOS Universal Clipboard, and cross-device cloud clipboards may capture the *pre-scrub original* before `watch` writes the scrubbed text — Invisibool cannot retract it. Mitigations: platform clipboard-privacy hints (`ExcludeClipboardContentFromMonitorProcessing` etc.), content-checked 60 s auto-clear of the restore slot, a first-run platform-specific warning. Hint-ignoring clipboard managers defeat the privacy-hint mitigation; this is admitted in the M1 docs. |
+| Clipboard history / cloud sync | M1 | Windows clipboard history, macOS Universal Clipboard, and cross-device cloud clipboards may capture the *pre-scrub original* before `watch` writes the scrubbed text - Invisibool cannot retract it. Mitigations: platform clipboard-privacy hints (`ExcludeClipboardContentFromMonitorProcessing` etc.), content-checked 60 s auto-clear of the restore slot, a first-run platform-specific warning. Hint-ignoring clipboard managers defeat the privacy-hint mitigation; this is admitted in the M1 docs. |
 | Polling race | M1 | On platforms without clipboard event APIs, `watch` polls; a clipboard write between polls can be observed by the next reader before scrub runs. The worst-case polling window is published in the M1 README. |
-| Silent corruption from non-verbatim echo | M1 | `watch` must never write a partially-restored value — the daemon refuses to write back a value it could not restore completely, surfacing the failure instead. |
+| Silent corruption from non-verbatim echo | M1 | `watch` must never write a partially-restored value - the daemon refuses to write back a value it could not restore completely, surfacing the failure instead. |
 | Control-channel same-user attack | M1 | The daemon control socket (Unix domain socket / Windows named pipe) is peer-UID/DACL-checked and never TCP. Same-user code execution already has every privilege the daemon does, so the control channel is not a new exposure class. |
-| `forget` orphans old fakes | M4a | Default `forget` moves to an encrypted retired set (idempotence still recognises the old fake; `restore` reports "forgotten — not restored"). `forget --purge` deletes fully and warns that old fakes become unrecognisable, so re-scrubbing old text may double-fake them. |
+| `forget` orphans old fakes | M4a | Default `forget` moves to an encrypted retired set (idempotence still recognises the old fake; `restore` reports "forgotten - not restored"). `forget --purge` deletes fully and warns that old fakes become unrecognisable, so re-scrubbing old text may double-fake them. |
 
 ---
 
 ## How to read this file
 
 A row is **live** when the code path it describes is present in the
-shipped engine — the threat and residual apply to anything you do
+shipped engine - the threat and residual apply to anything you do
 with the engine today. A row is **deferred** when the code lands in
 a later milestone; the threat is documented now so the introduction
 of the code is not the first time a reader sees the trade-off, but
 the residual does not apply until the milestone ships.
 
 If you discover a threat that is not on this list, that is a bug in
-this document. Open an issue or send a PR — the goal is to surface
+this document. Open an issue or send a PR - the goal is to surface
 risk, not to defend a clean-looking page.

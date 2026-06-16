@@ -23,7 +23,7 @@ services:
       dockerfile: Dockerfile.dev
       args:
         # HOST_UID/HOST_GID rather than UID/GID because `UID` is a readonly
-        # bash builtin — `UID=$(id -u) docker compose ...` silently fails to
+        # bash builtin - `UID=$(id -u) docker compose ...` silently fails to
         # export it, so the container user mismatches the host user and bind
         # mounts misbehave. Invoke with:
         #   HOST_UID=$(id -u) HOST_GID=$(id -g) docker compose ...
@@ -38,7 +38,7 @@ services:
       - target:/workspace/target
     environment:
       # Cargo writes its registry/git caches under CARGO_HOME (defaulted by
-      # the rust image to /usr/local/cargo) — leave that alone so the named
+      # the rust image to /usr/local/cargo) - leave that alone so the named
       # volumes above catch the right paths.
       CARGO_TERM_COLOR: always
     tty: true

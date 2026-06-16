@@ -108,7 +108,7 @@ def main() -> int:
         measured_s = f"{measured:>18.1f}"
         if base is None:
             base_s = f"{'(pending)':>18}" if pending else f"{'(missing)':>18}"
-            ratio_s = f"{'—':>8}"
+            ratio_s = f"{'-':>8}"
         else:
             base_s = f"{base:>18.1f}"
             ratio_s = f"{ratio:>7.2f}x"
@@ -130,7 +130,7 @@ def main() -> int:
 
     if pending:
         print(
-            "BASELINE STATE: pending — first CI baseline has not been committed yet.\n"
+            "BASELINE STATE: pending - first CI baseline has not been committed yet.\n"
             "Tripwire skipped. The numbers above are informational only.\n\n"
             "To set the baseline:\n"
             '  1. Trigger the "bench baseline regen" workflow (workflow_dispatch).\n'
@@ -141,11 +141,11 @@ def main() -> int:
         return 0
 
     if overall_pass:
-        print(f"RESULT: PASS — all tracked benches within {factor}x of baseline.")
+        print(f"RESULT: PASS - all tracked benches within {factor}x of baseline.")
         return 0
 
     print(
-        f"RESULT: FAIL — at least one bench regressed past {factor}x baseline.",
+        f"RESULT: FAIL - at least one bench regressed past {factor}x baseline.",
         file=sys.stderr,
     )
     return 1

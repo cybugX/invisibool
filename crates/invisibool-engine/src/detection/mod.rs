@@ -67,7 +67,7 @@ impl MatchKind {
 /// Detector confidence ordering. Higher variants beat lower ones in
 /// overlap resolution when span lengths tie. Exact match is `Certain`,
 /// pattern rules are `High`. M2 will add `Medium` for the entropy
-/// backstop — declaration order determines the derived `Ord`, so
+/// backstop - declaration order determines the derived `Ord`, so
 /// inserting Medium before High keeps comparisons stable.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Confidence {
@@ -212,7 +212,7 @@ mod tests {
     fn longer_pattern_wins_over_shorter_exact() {
         // Exact is just "AKIA" (4 bytes). Pattern matches the full
         // "AKIAAQUICKFOXEXAMPLE" (20 bytes). Span length is the first
-        // tiebreaker — the longer span wins over the higher-confidence
+        // tiebreaker - the longer span wins over the higher-confidence
         // shorter one, so a registered prefix can't shadow a full hit.
         let d = Detector::new(
             ExactMatcher::build(["AKIA"]).unwrap(),

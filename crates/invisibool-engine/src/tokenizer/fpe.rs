@@ -1,6 +1,6 @@
 //! Format-preserving encryption for FF1-eligible registered values.
 //!
-//! Stateless format-preserving reversal via deterministic FF1 — uses
+//! Stateless format-preserving reversal via deterministic FF1 - uses
 //! the `fpe` crate's NIST SP 800-38G FF1-AES256 implementation. Restore
 //! decrypts a candidate's body with each profile-matching
 //! registration's tweak and accepts the match whose plaintext equals
@@ -13,10 +13,10 @@
 //! HKDF for the FF1 subkey). There is no path that restores a registered
 //! value without the vault loaded.
 //!
-//! Process 1 — `invisibool scrub` — loads the vault, FF1-encrypts each
+//! Process 1 - `invisibool scrub` - loads the vault, FF1-encrypts each
 //! match's body under `(FF1_KEY, registered.tweak)`, exits without
-//! writing any session artifact. Process 2 — `invisibool restore`, minutes
-//! later — reloads the vault (same values, same tweaks), re-derives the
+//! writing any session artifact. Process 2 - `invisibool restore`, minutes
+//! later - reloads the vault (same values, same tweaks), re-derives the
 //! same FF1 subkey via HKDF from the same vault key, trial-decrypts each
 //! profile-matching candidate.
 //!
@@ -29,14 +29,14 @@
 //! - Tweak: per-registered-value, 16 random bytes generated at
 //!   registration and stored alongside the value. Stable across rename
 //!   (rename touches metadata, not the tweak). Destroyed only by
-//!   `forget --purge`, which makes old fakes unrestorable — matching the
+//!   `forget --purge`, which makes old fakes unrestorable - matching the
 //!   documented `forget --purge` semantics.
 //! - Restore acceptance: `subtle::ConstantTimeEq` on the decrypted body
 //!   vs. the registered body, so timing does not reveal which registered
 //!   value matched.
 //! - Eligibility: enforced at registration (M4a) AND at scrub (here, as
 //!   the engine's safety net). Failures route to the session-map path
-//!   with explicit consequence disclosure — never silent.
+//!   with explicit consequence disclosure - never silent.
 
 use aes::Aes256;
 use fpe::ff1::{FlexibleNumeralString, FF1};
@@ -52,12 +52,12 @@ use super::alphabet::Alphabet;
 const FF1_KEY_INFO: &[u8] = b"invisibool-ff1-key-v1";
 /// AES-256 needs 32 bytes of key material.
 const FF1_KEY_LEN: usize = 32;
-/// Tweak length in bytes — fixed at 16 (128 bits) for all registered
+/// Tweak length in bytes - fixed at 16 (128 bits) for all registered
 /// values, well within NIST SP 800-38G's 0–65535-byte range.
 pub const TWEAK_LEN: usize = 16;
 /// FF1 minimum domain size: `radix^length ≥ 10^6`. Below this floor
 /// the fake's possibility space is too small to give meaningful
-/// indistinguishability — a 5-digit fake of a 5-digit value lives in a
+/// indistinguishability - a 5-digit fake of a 5-digit value lives in a
 /// 100k-element space, trivially brute-forceable.
 const MIN_DOMAIN: u64 = 1_000_000;
 
@@ -95,7 +95,7 @@ impl KeyProvider for InMemoryKeyProvider {
 /// the engine needs (value, tweak, profile) and the FF1 subkey is
 /// reproducible by HKDF.
 ///
-/// `SessionMapped` entries — formatless values, cards, structured PII —
+/// `SessionMapped` entries - formatless values, cards, structured PII -
 /// take the session-map path. They are not restorable across two-
 /// command CLI invocations without an explicit `--session` file; the
 /// end-of-scrub notice discloses this.
@@ -109,7 +109,7 @@ pub enum RegisteredValue {
 /// `register` after passing the eligibility check.
 ///
 /// `Debug` is implemented manually so the registered plaintext never
-/// appears in `{:?}` output — the derived impl would delegate to
+/// appears in `{:?}` output - the derived impl would delegate to
 /// `Zeroizing<String>::fmt`, which prints the inner string verbatim. A
 /// stray `dbg!(&registration)` or a future log line that formats the
 /// struct must not leak the secret.
@@ -162,10 +162,10 @@ impl std::fmt::Debug for SessionRegistration {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SessionFakeKind {
     /// Cards (registered or detected) always take the test-BIN path,
-    /// never FF1 — the PAN domain is too small for FF1's bijection
+    /// never FF1 - the PAN domain is too small for FF1's bijection
     /// guarantee to be collision-safe against real cards.
     Card,
-    /// Structured PII — emails, IPv4 addresses, phone numbers — uses
+    /// Structured PII - emails, IPv4 addresses, phone numbers - uses
     /// reserved-range generators (`example.com`, 192.0.2.0/24,
     /// +1-555-0100..0199 etc.) so the fake collides with no real entity.
     Pii(PiiKind),
@@ -274,7 +274,7 @@ impl FpeTokenizer {
 
 /// Check FF1 eligibility for a (value, prefix, alphabet) triple. Called
 /// at registration (M4a `register`) AND at scrub time (the engine's
-/// safety net). Errors are non-fatal at registration time — the M4a
+/// safety net). Errors are non-fatal at registration time - the M4a
 /// command surfaces the consequence and offers the session-map path.
 pub fn check_eligibility(
     value: &str,
@@ -311,7 +311,7 @@ pub enum FpeError {
     /// the session-map path or report to the user.
     Eligibility(EligibilityError),
     /// The underlying FF1 crate returned an error. Treated as an internal
-    /// failure — the caller has supplied something `fpe` rejected, which
+    /// failure - the caller has supplied something `fpe` rejected, which
     /// shouldn't happen after eligibility passes.
     Ff1,
 }
@@ -491,7 +491,7 @@ mod tests {
     #[test]
     fn restore_picks_the_right_registration_by_tweak() {
         // Two registrations with identical plaintext but different tweaks
-        // must each restore to themselves — restore picks the one whose
+        // must each restore to themselves - restore picks the one whose
         // tweak decrypts the candidate correctly.
         let t = tokenizer();
         let r1 = reg(
@@ -521,7 +521,7 @@ mod tests {
         );
     }
 
-    // Helper for the test above only — FpeRegistration is intentionally
+    // Helper for the test above only - FpeRegistration is intentionally
     // not Clone in the public API (callers should not casually duplicate
     // secret material).
     impl FpeRegistration {
@@ -556,7 +556,7 @@ mod tests {
     #[test]
     fn hkdf_subkey_is_deterministic_across_tokenizers() {
         // Building two tokenizers from the same vault key must produce
-        // the same FF1 subkey (HKDF determinism) — required for the
+        // the same FF1 subkey (HKDF determinism) - required for the
         // "scrub in process 1, restore in process 2" workflow.
         let t1 = tokenizer();
         let t2 = tokenizer();
@@ -662,7 +662,7 @@ mod tests {
 
     #[test]
     fn registered_value_enum_debug_redacts_value() {
-        // The enum derives Debug — its variants must rely on each
+        // The enum derives Debug - its variants must rely on each
         // inner type's redacted Debug, not on a separate code path.
         let secret = "sk-test-anothersecretbody1234";
         let r = RegisteredValue::Fpe(reg(secret, "sk-test-", Alphabet::BASE62, [0u8; 16]));

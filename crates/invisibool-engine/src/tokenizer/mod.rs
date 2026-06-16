@@ -2,7 +2,7 @@
 //! for detected secrets.
 //!
 //! Reserved-range generators produce fakes from value spaces that
-//! real-world identifiers cannot occupy — RFC 2606 emails, RFC 5737
+//! real-world identifiers cannot occupy - RFC 2606 emails, RFC 5737
 //! IPv4 addresses, the 555-01XX reserved phone exchange, and card
 //! numbers in non-issued test BINs. Collision safety follows from range
 //! membership: a fake from `@example.com` cannot equal a real email
@@ -13,7 +13,7 @@
 //!
 //! Each generator is deterministic in its seed: identical seed bytes
 //! produce identical output. The caller chooses what to use as the
-//! seed — the raw secret (deterministic across sessions) or a value
+//! seed - the raw secret (deterministic across sessions) or a value
 //! salted with a session key (per-session stable only).
 
 pub mod alphabet;

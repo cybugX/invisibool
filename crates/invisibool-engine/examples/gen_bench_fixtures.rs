@@ -2,21 +2,21 @@
 //!
 //! Produces the three fixture files exercised by `benches/scrub.rs`:
 //!
-//!   tests/fixtures/prose_2kb.txt    — ~2 KB English prose with 3 secrets
-//!   tests/fixtures/source_64kb.rs   — ~64 KB synthetic Rust source (no secrets)
-//!   tests/fixtures/log_1mb.log      — ~1 MB synthetic access log (no secrets)
+//!   tests/fixtures/prose_2kb.txt    - ~2 KB English prose with 3 secrets
+//!   tests/fixtures/source_64kb.rs   - ~64 KB synthetic Rust source (no secrets)
+//!   tests/fixtures/log_1mb.log      - ~1 MB synthetic access log (no secrets)
 //!
 //! All three are written by a fixed-output procedure with no randomness, so
 //! re-running this example after any source change reproduces the exact
 //! bytes that should be committed. CI's regression tripwire pins on these
-//! fixtures, so the committed bytes must match what this generator emits —
+//! fixtures, so the committed bytes must match what this generator emits -
 //! a regen drift would silently move the baseline.
 //!
 //! Every secret-shaped token in the prose fixture uses an `inv-EXAMPLE-`
 //! prefix and a body whose first characters spell `EXAMPLE`. The prefix
 //! is project-namespaced (no third-party scanner has a rule for it), and
 //! the `EXAMPLE` marker is the project's convention for fixture-only
-//! secret-shaped data — it tells both human readers and third-party
+//! secret-shaped data - it tells both human readers and third-party
 //! secret scanners that the value is bench input, not a real credential.
 //!
 //! Run from the workspace root:
@@ -179,7 +179,7 @@ fn source_64kb() -> String {
 // ---------- log, ~1 MB, no secrets ----------
 
 fn log_1mb() -> String {
-    // Synthetic combined-log-format lines, deterministic. No secrets —
+    // Synthetic combined-log-format lines, deterministic. No secrets -
     // this is the large-input no-match throughput bench. Cycling through
     // a small set of paths and agents keeps the bytes realistic without
     // introducing per-line randomness.

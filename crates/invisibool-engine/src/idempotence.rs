@@ -2,8 +2,8 @@
 //!
 //! Format-preserving fakes deliberately match the same shape as their
 //! originals, so they re-trigger the very detectors that produced them.
-//! Re-scrubbing already-scrubbed text — for example a user re-copying
-//! their own scrubbed prompt out of the LLM input box — would
+//! Re-scrubbing already-scrubbed text - for example a user re-copying
+//! their own scrubbed prompt out of the LLM input box - would
 //! double-encrypt FF1 fakes and silently break restore. The mechanism
 //! to prevent that is checked before tokenising ANY pattern-matched
 //! candidate.
@@ -19,16 +19,16 @@
 //! Otherwise, the candidate is left unchanged (no-op) if any of these
 //! three recognition checks fires:
 //!
-//! - **(a) FF1 trial-decrypt** — try decrypting the candidate against
+//! - **(a) FF1 trial-decrypt** - try decrypting the candidate against
 //!   each registered value's FF1 tweak (and then against the retired
 //!   set). If any decryption equals the registered/retired plaintext,
 //!   the candidate is already one of our FF1 fakes.
-//! - **(b) Reserved-range membership** — if the candidate lies inside a
+//! - **(b) Reserved-range membership** - if the candidate lies inside a
 //!   reserved/test range we generate fakes into (RFC 2606 example
 //!   domains, RFC 5737 TEST-NET-1/2/3, the 555-01XX phone exchange,
 //!   or the 4242-test-BIN card space), it is already one of our
 //!   session-map fakes.
-//! - **(c) MAC verification** — if the candidate's tail verifies as a
+//! - **(c) MAC verification** - if the candidate's tail verifies as a
 //!   truncated keyed MAC over the preceding bytes, it is one of our
 //!   MAC-tagged self-authenticating fakes.
 //!
@@ -54,7 +54,7 @@ pub enum IdempotenceDecision {
     /// Tokenize this candidate into a fake. Either it exactly matched a
     /// registered real value (precedence) or no recognition check fired.
     Scrub,
-    /// Leave this candidate unchanged — it's already one of our fakes.
+    /// Leave this candidate unchanged - it's already one of our fakes.
     NoOp(NoOpReason),
 }
 
@@ -65,7 +65,7 @@ pub enum NoOpReason {
     Ff1DecryptedToRegistered,
     /// FF1 trial-decrypt matched a retired vault value (`forget`'d but
     /// kept in the recognition-only retired set). `restore` will say
-    /// "forgotten — not restored" rather than restore.
+    /// "forgotten - not restored" rather than restore.
     Ff1DecryptedToRetired,
     /// Candidate lies inside a reserved/test range the engine emits into.
     ReservedRange,
@@ -92,8 +92,8 @@ pub struct IdempotenceContext<'a> {
 impl IdempotenceContext<'_> {
     /// Decide whether `candidate` should be scrubbed or left unchanged.
     ///
-    /// `mac_alphabet` is the candidate's expected alphabet — taken from
-    /// the matched detector profile by the engine — used only by check
+    /// `mac_alphabet` is the candidate's expected alphabet - taken from
+    /// the matched detector profile by the engine - used only by check
     /// (c) to know how many tail characters to verify.
     pub fn classify(&self, candidate: &str, mac_alphabet: &Alphabet) -> IdempotenceDecision {
         // PRECEDENCE: exact-match to a registered real value always scrubs.
@@ -137,7 +137,7 @@ impl IdempotenceContext<'_> {
 }
 
 /// True iff `candidate` lies in any reserved/test range the engine emits
-/// fakes into. Liberal — accepts the wider RFC 2606 / RFC 5737 ranges
+/// fakes into. Liberal - accepts the wider RFC 2606 / RFC 5737 ranges
 /// even though current generators emit only one subset of each, so a
 /// future generator change doesn't break idempotence for old emissions.
 fn is_in_reserved_range(candidate: &str) -> bool {
@@ -158,7 +158,7 @@ fn is_email_example_domain(candidate: &str) -> bool {
 fn is_ipv4_rfc5737(candidate: &str) -> bool {
     // TEST-NET-1, TEST-NET-2, TEST-NET-3. Last-octet validity is checked
     // because "192.0.2.999" lies in the reserved /24 by prefix but isn't
-    // a valid IPv4 address — still, accepting prefix-only is the right
+    // a valid IPv4 address - still, accepting prefix-only is the right
     // call here: we'd rather treat a malformed near-fake as already-fake
     // than risk double-encryption.
     ["192.0.2.", "198.51.100.", "203.0.113."]
@@ -180,7 +180,7 @@ fn is_phone_555_01(candidate: &str) -> bool {
 fn is_card_test_bin_4242(candidate: &str) -> bool {
     // 16 digits, all ASCII, starting with 4242, with optional separators
     // (spaces or hyphens) preserved from the original. The Luhn check
-    // is not strictly required here — by 4242-BIN membership the
+    // is not strictly required here - by 4242-BIN membership the
     // candidate is already known to be in the test space; we accept
     // any 16-digit-with-prefix candidate to be liberal about future
     // separator layouts.

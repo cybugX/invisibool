@@ -2,7 +2,7 @@
 #
 # Enforced in CI. Policy:
 #   - Minimal, audited dependency tree.
-#   - No GPL/AGPL/LGPL — incompatible with Apache-2.0 distribution.
+#   - No GPL/AGPL/LGPL - incompatible with Apache-2.0 distribution.
 #   - Block known vulnerabilities (RUSTSEC advisories).
 #   - Only crates.io as a registry; no git dependencies in release.
 

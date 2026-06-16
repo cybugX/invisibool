@@ -169,7 +169,7 @@ jobs:
   # Runs the engine-level leak harness, an integration test that asserts
   # registered-value plaintext never appears in any output channel other
   # than the intended restore stream. Each test generates a fresh canary
-  # at runtime (system clock + process id) — no canary string is ever
+  # at runtime (system clock + process id) - no canary string is ever
   # committed to the repo.
   #
   # The harness covers both the happy-path scrub families (FF1, PII,
@@ -204,7 +204,7 @@ jobs:
   # `pending_first_ci_baseline: true`, the tripwire exits 0 and prints
   # informational numbers only. Run the bench-baseline-regen job below
   # to produce a real baseline once the bench is settled, then commit
-  # the JSON it emits — the next PR will start enforcing the tripwire.
+  # the JSON it emits - the next PR will start enforcing the tripwire.
   bench-regression:
     name: bench regression
     runs-on: ubuntu-24.04
@@ -226,7 +226,7 @@ jobs:
   # the per-PR job to keep the baseline tight. Prints the new
   # bench-baseline.json to the workflow log inside BEGIN/END markers; a
   # maintainer copies the JSON into the repo per
-  # docs/RUNBOOK_baseline_refresh.md. The job is read-only — it does not
+  # docs/RUNBOOK_baseline_refresh.md. The job is read-only - it does not
   # commit to the repo on its own. This is intentional: a CI-signed
   # auto-commit to a baseline file is a quiet way to ratchet
   # performance regressions in unnoticed, so the maintainer reviews the

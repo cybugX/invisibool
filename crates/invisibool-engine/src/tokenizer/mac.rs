@@ -1,6 +1,6 @@
 //! MAC-tagged self-authenticating fakes.
 //!
-//! Free-form random fakes (those that don't live in a reserved range —
+//! Free-form random fakes (those that don't live in a reserved range -
 //! detected-but-unregistered high-entropy secrets and formatless vault
 //! values with a long enough body) carry their identity in their own
 //! bytes: the last K characters of the fake are a truncated HMAC-SHA-256
@@ -21,7 +21,7 @@
 //!    for short candidates so idempotence falls through to whichever
 //!    other check (live session map, reserved-range membership) covers
 //!    them. In two-command terminal mode short fakes are simply not
-//!    re-scrubbed-idempotent — that limit is documented to the user.
+//!    re-scrubbed-idempotent - that limit is documented to the user.
 //!
 //! Per-alphabet `K` is chosen as the smallest count of symbols whose
 //! information content reaches the 32-bit floor: `K = ceil(32 / log2(R))`.
@@ -29,7 +29,7 @@
 //! digits (≈33.2 bits), K=7 at base32 / base36 (≈35.0 / ≈36.2 bits).
 //!
 //! All alphabets defined here are ASCII-only. `verify` returns `false`
-//! on any candidate that contains non-ASCII bytes — Invisibool never
+//! on any candidate that contains non-ASCII bytes - Invisibool never
 //! emits non-ASCII fakes, so a non-ASCII candidate cannot be ours.
 
 use hkdf::Hkdf;
@@ -45,7 +45,7 @@ type HmacSha256 = Hmac<Sha256>;
 /// consists of symbols from `alphabet`; its length is
 /// `alphabet.mac_tail_len()`.
 ///
-/// `key` is treated as opaque keying material — its length is not
+/// `key` is treated as opaque keying material - its length is not
 /// constrained (HMAC accepts any-length keys). The caller is expected to
 /// pass a session-scoped MAC key derived from the vault key, not the
 /// vault key directly.
@@ -81,7 +81,7 @@ pub fn verify(key: &[u8], candidate: &str, alphabet: &Alphabet) -> bool {
     let body = &candidate[..split];
     let claimed_tail = &candidate[split..];
 
-    // The claimed tail must consist of valid alphabet characters — a
+    // The claimed tail must consist of valid alphabet characters - a
     // candidate with junk in the tail position cannot be one of ours
     // and we skip the HMAC computation in that case.
     if !claimed_tail.chars().all(|c| alphabet.contains(c)) {
@@ -144,7 +144,7 @@ pub fn make_macfake(key: &[u8], real_value: &str, alphabet: &Alphabet) -> Option
 ///
 /// Modulo bias note: a single byte mapped `b % radix` is slightly
 /// non-uniform when the radix does not divide 256. The bias is at most
-/// `radix / 256` and is acceptable here — the body is plausibility
+/// `radix / 256` and is acceptable here - the body is plausibility
 /// padding around an authoritative MAC tail, not cryptographic output.
 /// FF1 uses a separate, properly bias-free numeral path.
 fn derive_body(key: &[u8], real_value: &str, body_len: usize, alphabet: &Alphabet) -> String {

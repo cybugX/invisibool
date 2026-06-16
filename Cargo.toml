@@ -32,26 +32,26 @@ invisibool-engine = { path = "crates/invisibool-engine", version = "=0.0.0" }
 # cross a semver-major silently.
 #
 # Detection:
-#   aho-corasick — one precompiled automaton over registered values
-#   regex        — RegexSet pattern matcher (linear-time, non-backtracking)
+#   aho-corasick - one precompiled automaton over registered values
+#   regex        - RegexSet pattern matcher (linear-time, non-backtracking)
 #
 # Tokenizer (format-preserving fake generation, per-entity dispatch):
-#   fpe          — FF1 per NIST SP 800-38G. The project forbids
+#   fpe          - FF1 per NIST SP 800-38G. The project forbids
 #                  hand-rolling cipher modes, so this crate is mandated.
-#   hmac + sha2  — HMAC-SHA-256 for MAC-tagged self-authenticating fakes
-#   subtle       — constant-time equality on MAC tails
+#   hmac + sha2  - HMAC-SHA-256 for MAC-tagged self-authenticating fakes
+#   subtle       - constant-time equality on MAC tails
 #
 # Memory safety of secret material (in-memory wipe + non-leaking wrappers):
-#   secrecy      — `Secret<T>` wrapper; never logged, never Debug-printed
-#   zeroize      — wipe plaintext from memory on drop (derive feature for
+#   secrecy      - `Secret<T>` wrapper; never logged, never Debug-printed
+#   zeroize      - wipe plaintext from memory on drop (derive feature for
 #                  Zeroize / ZeroizeOnDrop on internal types)
 #
 # Serialization (session-map serialize hooks for the M1 watch daemon;
 # no on-disk artifact in the engine itself):
 #   serde + serde_json
 #
-# Benchmarks (latency-budget enforcement) — engine-only dev-dependency:
-#   criterion    — declares MSRV 1.86 (higher than the consumer-facing
+# Benchmarks (latency-budget enforcement) - engine-only dev-dependency:
+#   criterion    - declares MSRV 1.86 (higher than the consumer-facing
 #                  workspace MSRV of 1.85). This is intentional: criterion
 #                  is a developer tool that never ships, so a higher
 #                  bench-side floor does not affect anyone installing or

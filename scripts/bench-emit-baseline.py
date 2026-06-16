@@ -9,7 +9,7 @@ surrounding log noise.
 Intended caller: the workflow_dispatch-only `bench-baseline-regen` CI
 job, which runs on the pinned runner class with longer measurement time
 than the per-PR bench-regression job. Never run this on a developer
-machine and commit the result — dev-box baselines defeat the gate
+machine and commit the result - dev-box baselines defeat the gate
 (developer hardware varies wildly from CI runners, so a dev-box number
 either flakes the gate or has to be loosened into uselessness).
 

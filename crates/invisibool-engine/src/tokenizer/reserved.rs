@@ -275,7 +275,7 @@ mod tests {
 
     #[test]
     fn card_visa16_rejects_non_16_digit_input() {
-        // 15 digits (Amex-shaped) — out of scope for M0b's Visa-only generator.
+        // 15 digits (Amex-shaped) - out of scope for M0b's Visa-only generator.
         assert!(fake_card_visa16(b"seed", "3782 822463 10005").is_none());
         // 8 digits
         assert!(fake_card_visa16(b"seed", "12345678").is_none());

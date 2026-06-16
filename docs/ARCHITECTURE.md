@@ -1,12 +1,12 @@
 # Architecture
 
-This document describes what the engine **is** and **does** — the
+This document describes what the engine **is** and **does** - the
 modules, the types, and the data flow from an input string to a
 scrubbed output and back. It does not make security claims; for the
 properties the engine is designed to give you (and the residuals it
 does not), read `docs/THREAT_MODEL.md` alongside this file.
 
-The scope is the M0b engine library — the surface-agnostic core that
+The scope is the M0b engine library - the surface-agnostic core that
 later surfaces (the CLI, the clipboard `watch` daemon, a possible
 future browser extension or traffic proxy) will reuse. The shape
 described here is the shape of `crates/invisibool-engine/`.
@@ -18,7 +18,7 @@ The repository is a two-crate Cargo workspace:
 | Crate | Purpose | M0b state |
 |---|---|---|
 | `invisibool-engine` | Library: detection, tokenization, fail-closed scrub/restore API | **Live** |
-| `invisibool` | Binary: CLI, daemon, IPC, clipboard | **Skeleton only** — the M1 milestone fills this in |
+| `invisibool` | Binary: CLI, daemon, IPC, clipboard | **Skeleton only** - the M1 milestone fills this in |
 
 The engine crate has zero network dependencies and carries
 `#![forbid(unsafe_code)]`. The binary crate exists as a workspace
@@ -33,7 +33,7 @@ The engine's scrub call walks the input left-to-right, dispatches
 each exact-match hit through the idempotence classifier, then
 through the tokenizer that matches the registration's kind. (At
 M0b only the exact matcher is wired into this pass; pattern
-detection is built but not invoked here — see the Detection layer
+detection is built but not invoked here - see the Detection layer
 below.)
 
 ```
@@ -82,19 +82,19 @@ below.)
 Two scrub entry points share the same machinery via a private
 `scrub_impl`:
 
-- `Engine::scrub(&self, input)` — stateless. Session-mapped fakes
+- `Engine::scrub(&self, input)` - stateless. Session-mapped fakes
   (PII, Card, Formatless) are emitted with a
   `SessionMappedUnrestorable` notice because the engine has no place
   to store the (real, fake) pair for later restore.
 - `Engine::scrub_with_session(&self, input, &mut SessionMap, Instant)`
-  — same path with a caller-owned session map threaded through.
+  - same path with a caller-owned session map threaded through.
   Each session-mapped (real, fake) pair is stored in the map; the
   unrestorable notice is suppressed because the fake **is**
   restorable in-process via the caller's map.
 
 ### Restore
 
-Restore is the dual but is not symmetric — it does not need
+Restore is the dual but is not symmetric - it does not need
 detection because the candidates are already in the input:
 
 ```
@@ -116,10 +116,10 @@ detection because the candidates are already in the input:
                                                           { output, restored_count }
 ```
 
-- `Engine::restore(&self, input)` — stateless FF1 restore only.
+- `Engine::restore(&self, input)` - stateless FF1 restore only.
   Non-FF1 fakes (reserved-range, MAC-tagged) pass through unchanged.
 - `Engine::restore_with_session(&self, input, &mut SessionMap, Instant)`
-  — runs the session-map replacement pass first, then the FF1 pass
+  - runs the session-map replacement pass first, then the FF1 pass
   over the result.
 
 The two passes compose because the FF1 fake space (specific prefix +
@@ -130,7 +130,7 @@ overlap.
 
 `crates/invisibool-engine/src/detection/`
 
-### Exact-match — `ExactMatcher` over a precompiled Aho-Corasick automaton
+### Exact-match - `ExactMatcher` over a precompiled Aho-Corasick automaton
 
 The exact matcher builds one Aho-Corasick automaton over the full
 registered-value set when `Engine::new` runs. Each registered value
@@ -138,13 +138,13 @@ gets a `value_id` that the engine maps back to the right
 registration via the engine's `value_id_to_ref` vector. Scanning is
 O(input length + total matches) and runs once per scrub call.
 
-### Pattern matching — `PatternMatcher` over one linear-time `RegexSet`
+### Pattern matching - `PatternMatcher` over one linear-time `RegexSet`
 
 The pattern matcher is built but not yet wired into the engine's
 scrub pass. The rule corpus (a set of public-format regexes for
 detected-but-unregistered secrets) lands at M2; until then the
 engine's detection pass uses exact-match alone. The matcher's
-linear-time `RegexSet` design — no backtracking — pre-empts the
+linear-time `RegexSet` design - no backtracking - pre-empts the
 ReDoS class of attacks that would otherwise be possible on a
 user-controlled prompt.
 
@@ -158,7 +158,7 @@ production once both matchers actually run together at M2. The
 policy:
 
 1. **Span length will win first.** A longer match beats a shorter
-   one from a different matcher — so a registered prefix
+   one from a different matcher - so a registered prefix
    (e.g. `"AKIA"`) will not shadow a full-token pattern hit
    (`AKIA + 16 chars`).
 2. **Within a tie, exact-match confidence beats pattern confidence.**
@@ -182,11 +182,11 @@ ends the classification:
 2. **Reserved-range membership.** If the candidate sits inside a
    reserved range (`@example.com` and friends, RFC 5737 test-net
    addresses, the 555-01XX phone exchange, the `4242` test BIN),
-   it is already one of the engine's reserved-range fakes — emit
+   it is already one of the engine's reserved-range fakes - emit
    unchanged.
 3. **MAC verification.** If the candidate's tail verifies as a
    truncated keyed MAC over the preceding bytes, it is one of the
-   engine's MAC-tagged self-authenticating fakes — emit unchanged.
+   engine's MAC-tagged self-authenticating fakes - emit unchanged.
 
 A candidate that passes none of the three is the input "this is a
 real secret, please scrub it" and the tokenizer dispatch runs.
@@ -216,7 +216,7 @@ pub enum SessionFakeKind {
 }
 ```
 
-### FF1 — `tokenizer/fpe.rs`
+### FF1 - `tokenizer/fpe.rs`
 
 NIST SP 800-38G FF1-AES256 via the `fpe` crate. The FF1 subkey is
 derived from the vault key by HKDF-SHA-256 with a versioned info
@@ -229,7 +229,7 @@ even when alphabets match.
 FF1 eligibility is enforced twice: at registration (the future M4a
 `register` command) and at scrub time as a safety net. The
 scrub-time re-check exists for the rare case of a corrupt or
-migrated vault entry — the engine fails closed if that re-check
+migrated vault entry - the engine fails closed if that re-check
 fails. Restore decrypts a candidate's body with each
 profile-matching registration's tweak and accepts the match whose
 plaintext equals the registered value via `subtle::ConstantTimeEq`.
@@ -237,9 +237,9 @@ plaintext equals the registered value via `subtle::ConstantTimeEq`.
 The `Alphabet` type (`tokenizer/alphabet.rs`) is the parameter to
 FF1 and the MAC primitive. Construction of a custom alphabet
 validates ASCII-only, no whitespace, distinct symbols, and radix in
-[2, 65535] — the NIST SP 800-38G domain bounds.
+[2, 65535] - the NIST SP 800-38G domain bounds.
 
-### Reserved-range — `tokenizer/reserved.rs`
+### Reserved-range - `tokenizer/reserved.rs`
 
 Deterministic generators that produce fakes inside well-known
 no-collision ranges:
@@ -255,7 +255,7 @@ Cards never go through FF1 because the card-number domain is too
 small for FF1's bijection to be safe against a guess-and-check
 attacker. Cards always take the reserved-range path.
 
-### MAC-tagged fake — `tokenizer/mac.rs::make_macfake`
+### MAC-tagged fake - `tokenizer/mac.rs::make_macfake`
 
 For Formatless values long enough to carry a MAC tail, the engine
 emits a length-matched fake of the form `body || tail`:
@@ -271,7 +271,7 @@ emits a length-matched fake of the form `body || tail`:
   length as the real value.
 
 The idempotence layer's check (c) recognises any string of length
-`>= K` whose tail equals the keyed MAC of its preceding bytes — that
+`>= K` whose tail equals the keyed MAC of its preceding bytes - that
 is, it accepts every fake `make_macfake` emits, regardless of
 whether the (real, fake) pair is in any session map. The MAC scheme
 is the engine's "this is one of ours" signal in stateless flows.
@@ -281,11 +281,11 @@ short-fake carve-out: `make_macfake` returns `None`, the engine
 fails closed with `REDACTION_PLACEHOLDER` + a
 `ScrubNotice::RedactedFormatless` notice.
 
-### Session map — `tokenizer/session.rs`
+### Session map - `tokenizer/session.rs`
 
 `SessionMap` is a bounded bidirectional `{real ↔ fake}` map with
 LRU + TTL eviction. Every public operation takes an explicit
-`Instant`, so the map has no internal clock — tests construct
+`Instant`, so the map has no internal clock - tests construct
 successive `Instant`s by adding `Duration`s, production callers
 pass `Instant::now()`. Real values inside the map are
 `Zeroizing`-wrapped; eviction paths (LRU, TTL prune, explicit
@@ -326,10 +326,10 @@ engine supports today:
 
 | Mode | API | What gets restored |
 |---|---|---|
-| Stateless | `Engine::restore(input)` | FF1 fakes only. Non-FF1 fakes (reserved-range, MAC-tagged) pass through unchanged — idempotence recognises them as fakes so they're safe to leave in place. |
+| Stateless | `Engine::restore(input)` | FF1 fakes only. Non-FF1 fakes (reserved-range, MAC-tagged) pass through unchanged - idempotence recognises them as fakes so they're safe to leave in place. |
 | Session | `Engine::restore_with_session(input, &mut SessionMap, Instant)` | First pass: every session-stored fake is replaced by its registered real value. Second pass: FF1 restore over the result. Each session lookup touches the entry's `last_touched` so frequently-restored pairs keep their LRU/TTL standing. |
 
-The session-mode restore is in-process only — it depends on a live
+The session-mode restore is in-process only - it depends on a live
 session map. A two-command CLI flow that scrubs in process A and
 restores in process B cannot use session-mode at M0b. The M1 CLI's
 `--session` flag will close that gap.
@@ -388,25 +388,25 @@ explicitly out of scope for the M0b engine crate. Each will arrive
 at its named milestone and plug into the engine via the public
 types above:
 
-- **CLI surface** (`crates/invisibool/src/main.rs`) — M1 brings
+- **CLI surface** (`crates/invisibool/src/main.rs`) - M1 brings
   `scrub` / `restore` / `register` / `list` / `forget`. M4a adds
   `rename` / `rotate-key`.
-- **Clipboard `watch` daemon** — M1. Long-lived process, holds an
+- **Clipboard `watch` daemon** - M1. Long-lived process, holds an
   `Engine` and a `SessionMap` open across events, talks to the CLI
   via a peer-checked Unix domain socket / Windows named pipe.
   Wayland is detected and refused; Windows / macOS / X11 are the
   v1 platforms.
-- **Vault file** (AEAD-encrypted, OS-keychain-backed) — M1 brings a
+- **Vault file** (AEAD-encrypted, OS-keychain-backed) - M1 brings a
   minimal vault for FF1 registered values. M4a hardens it
   (Argon2id passphrase fallback, auto-lock, strength guards on
   `register`, the `--no-exact-vault` opt-out).
-- **`--session` flag** — M1. Writes an AEAD-encrypted session file
+- **`--session` flag** - M1. Writes an AEAD-encrypted session file
   (mode `0600`, TTL-bounded) so two-command CLI invocations can
   round-trip session-mapped fakes.
-- **Pattern rule corpus** — M2. Wires `rules/secrets.toml` into
+- **Pattern rule corpus** - M2. Wires `rules/secrets.toml` into
   the detection pass and adds the engine-level idempotence test
   that the current pattern-rule-less engine can't yet make
   load-bearing.
-- **Browser extension / traffic proxy / document mocking** — out
+- **Browser extension / traffic proxy / document mocking** - out
   of scope for the M0–M4 CLI scrubber entirely; they are separate
   future projects that will reuse the same engine crate.

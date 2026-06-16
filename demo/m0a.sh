@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Invisibool — M0a gate demo.
+# Invisibool - M0a gate demo.
 #
 # What this script proves:
-#   M0a built the project's scaffold and CI/dev tooling — there is no
+#   M0a built the project's scaffold and CI/dev tooling - there is no
 #   secret detection / tokenization / vault code yet. So this demo cannot
 #   show a real secret being scrubbed. What it CAN show is that the whole
 #   build/test/lint suite, plus every gate that will guard future code,
@@ -58,7 +58,7 @@ export HOST_GID="$(id -g)"
 
 section "0 / 6   Build the pinned dev container (cached after first run)"
 note "Pinned: Rust 1.96.0 (base image by manifest digest), cargo-deny 0.19.8,"
-note "cargo-audit 0.22.2, gitleaks 8.30.1 — each binary SHA-256-checked."
+note "cargo-audit 0.22.2, gitleaks 8.30.1 - each binary SHA-256-checked."
 docker compose build dev >/dev/null
 note "Container ready as invisibool-dev:latest."
 
@@ -69,7 +69,7 @@ run_in_container() {
 }
 
 section "1 / 6   Pinned tool versions inside the container"
-note "Same binaries CI uses — every SHA matches Dockerfile.dev and .github/workflows/ci.yml."
+note "Same binaries CI uses - every SHA matches Dockerfile.dev and .github/workflows/ci.yml."
 run_in_container '
     rustc --version
     cargo-deny --version
@@ -79,12 +79,12 @@ run_in_container '
 
 section "2 / 6   The Rust workspace compiles"
 note "Two crates: invisibool-engine (library, forbids unsafe code) and invisibool (the CLI binary)."
-note "Both empty stubs in M0a — M0b will add detection, tokenization, vault."
+note "Both empty stubs in M0a - M0b will add detection, tokenization, vault."
 run_in_container '
     cargo check --workspace --all-targets
     cargo test  --workspace --all-targets
 '
-note "No tests yet — M0b adds property tests next to every engine feature."
+note "No tests yet - M0b adds property tests next to every engine feature."
 
 section "3 / 6   Code style and lint gates"
 note "Same gates that will guard every future commit."
@@ -95,7 +95,7 @@ run_in_container '
 
 section "4 / 6   Supply-chain gates: cargo deny + cargo audit"
 note "deny.toml: license allowlist (permissive only), advisory blocks, only crates.io as a registry."
-note "cargo audit fetches the RustSec advisory DB. On the M0a dep-free scaffold both gates pass trivially —"
+note "cargo audit fetches the RustSec advisory DB. On the M0a dep-free scaffold both gates pass trivially -"
 note "that is structural, not a mystery success. Once M0b adds real deps both gates start meaning something."
 run_in_container '
     cargo deny  check
@@ -104,13 +104,13 @@ run_in_container '
 
 section "5 / 6   Secret scan: gitleaks over full history"
 note "Allowlist is narrowly path-scoped to tests/fixtures/ and rules/secrets.toml only."
-note "No broad allowlists — a secret scrubber'\''s repo must not defang the very scanner it depends on."
+note "No broad allowlists - a secret scrubber'\''s repo must not defang the very scanner it depends on."
 run_in_container '
     gitleaks detect --no-banner --redact --source .
 '
 
 section "6 / 6   The invisibool CLI binary runs"
-note "Binary stub — M1 will replace this with the real CLI (scrub/restore/register/watch/...)."
+note "Binary stub - M1 will replace this with the real CLI (scrub/restore/register/watch/...)."
 run_in_container '
     cargo run --quiet -p invisibool
 '

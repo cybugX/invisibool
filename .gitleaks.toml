@@ -25,7 +25,7 @@ Narrow allowlist: the engine's bench corpus under \
 crates/invisibool-engine/tests/fixtures/ (synthetic inv-EXAMPLE- tokens \
 + no-secret corpus files) and the regex source of the detection \
 ruleset at rules/secrets.toml. A future crate that needs its own \
-fixtures directory must add its own entry here — never broaden this \
+fixtures directory must add its own entry here - never broaden this \
 into a tests/fixtures/.* wildcard that would silently cover new dirs.\
 """
 paths = [

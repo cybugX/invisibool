@@ -12,7 +12,7 @@
 //! input always returns the same `fake` until the entry is evicted.
 //!
 //! The map exists so non-FF1 fakes (PII, cards, detected-but-unregistered
-//! high-entropy secrets) can be restored by a long-lived process — the
+//! high-entropy secrets) can be restored by a long-lived process - the
 //! `watch` daemon today, the future proxy daemon tomorrow. Short-lived
 //! two-command CLI invocations cannot use this strategy; they use
 //! stateless FF1 instead.
@@ -22,7 +22,7 @@
 //! to `Instant::now()`; production callers pass the real `Instant::now()`.
 //! No internal clock means no global state, no flaky time-dependent tests,
 //! and a clean shape for the M1 CLI's serialisation hook (the on-disk
-//! AEAD-encrypted session file stores `{fake, real}` pairs only — see
+//! AEAD-encrypted session file stores `{fake, real}` pairs only - see
 //! `entries` and `import`; the timestamps reset to `now` on load).
 //!
 //! **Collision policy.** `make_fake` is expected to produce unique fakes
@@ -39,10 +39,10 @@
 //! entry in `by_real`. Both copies are wiped before deallocation:
 //!
 //! - `Entry.real` is a `Zeroizing<String>`. When the `Entry` is dropped
-//!   — eviction (`evict_lru`), TTL pruning (`prune`), explicit `clear`,
-//!   collision overwrite, or the map itself going out of scope — the
-//!   `Zeroizing` Drop runs `String::zeroize`, wiping the underlying
-//!   bytes before the allocator reclaims them.
+//!   (eviction via `evict_lru`, TTL pruning via `prune`, explicit
+//!   `clear`, collision overwrite, or the map itself going out of
+//!   scope), the `Zeroizing` Drop runs `String::zeroize`, wiping the
+//!   underlying bytes before the allocator reclaims them.
 //! - `by_real` keys are plain `String` (HashMap keys cannot be mutated
 //!   in place, so the `Zeroizing` wrapper is awkward there). Every code
 //!   path that removes an entry from `by_real` uses `remove_entry()` to
@@ -123,7 +123,7 @@ impl SessionMap {
         // If `fake` collides with an existing entry, the previous owner
         // gets its reverse-direction pointer cleaned up so the two maps
         // stay consistent. Last-write-wins, documented at the module level.
-        // The displaced Entry drops here — its Zeroizing<String> wipes
+        // The displaced Entry drops here - its Zeroizing<String> wipes
         // the old real value's bytes before deallocation.
         if let Some(old) = self.by_fake.insert(fake.clone(), new) {
             wipe_by_real_key(&mut self.by_real, &old.real);
@@ -254,7 +254,7 @@ impl Drop for SessionMap {
         // `by_fake` will drop its Entry values automatically, and each
         // Entry's Zeroizing<String> wipes the Entry-side copy of the
         // real value. The `by_real` HashMap holds plaintext Strings as
-        // KEYS, which HashMap drops without zeroizing — so drain them
+        // KEYS, which HashMap drops without zeroizing - so drain them
         // explicitly and wipe each key before its drop.
         for (mut key, _) in self.by_real.drain() {
             key.zeroize();
@@ -343,7 +343,7 @@ mod tests {
 
     #[test]
     fn insert_at_capacity_evicts_least_recently_touched() {
-        let mut m = make_with(2, 60_000); // huge TTL — only LRU matters
+        let mut m = make_with(2, 60_000); // huge TTL - only LRU matters
         let t0 = Instant::now();
         let _ = m.get_or_insert("a", t0, || "fake-a".into());
         let t1 = t0 + Duration::from_secs(1);
@@ -351,7 +351,7 @@ mod tests {
         // Touch "a" so it becomes the most-recently-used.
         let t2 = t0 + Duration::from_secs(2);
         let _ = m.restore("fake-a", t2);
-        // Insert "c" at t3 — must evict "b" (LRU), not "a".
+        // Insert "c" at t3 - must evict "b" (LRU), not "a".
         let t3 = t0 + Duration::from_secs(3);
         let _ = m.get_or_insert("c", t3, || "fake-c".into());
 
@@ -380,7 +380,7 @@ mod tests {
             m.restore("fake-a", t0 + Duration::from_secs(30)).as_deref(),
             Some("a")
         );
-        // Past the TTL — prune kicks in.
+        // Past the TTL - prune kicks in.
         assert_eq!(m.restore("fake-a", t0 + Duration::from_secs(120)), None);
         assert!(m.is_empty());
     }
@@ -390,7 +390,7 @@ mod tests {
         let mut m = make_with(10, 60);
         let t0 = Instant::now();
         m.get_or_insert("a", t0, || "fake-a".into());
-        // Touch every 30 s for 5 minutes — far past the 60 s TTL.
+        // Touch every 30 s for 5 minutes - far past the 60 s TTL.
         for k in 1..=10 {
             let t = t0 + Duration::from_secs(30 * k);
             assert!(m.restore("fake-a", t).is_some(), "expired at step {k}");
@@ -400,7 +400,7 @@ mod tests {
     #[test]
     fn insert_prunes_expired_before_evaluating_capacity() {
         // Bound = 2, TTL = 60 s. Insert A and B early; let them expire;
-        // then insert C — must not evict anything because A and B were
+        // then insert C - must not evict anything because A and B were
         // already pruned for TTL.
         let mut m = make_with(2, 60);
         let t0 = Instant::now();
@@ -455,7 +455,7 @@ mod tests {
     // ----- wipe-path consistency: by_real cleaned, no orphans -----
     //
     // These tests prove that LRU/TTL/clear don't just remove from
-    // by_fake — they also wipe the matching by_real key. If by_real
+    // by_fake - they also wipe the matching by_real key. If by_real
     // kept an orphan, the next get_or_insert for the evicted real
     // would short-circuit to the stale fake and the factory would not
     // run. The factory-call counter is the canary.

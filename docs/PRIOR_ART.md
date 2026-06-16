@@ -23,7 +23,7 @@ relevant scanner pair for this comparison is `Anonymize` (input) +
 - `Anonymize` detects PII entities and replaces them with tokens.
   The default token shape is a bracketed placeholder such as
   `[REDACTED_PERSON_1]`; an optional `use_faker=True` parameter
-  substitutes entities with "fabricated data" instead — realistic-
+  substitutes entities with "fabricated data" instead - realistic-
   looking fakes generated per entity type. The library's vault
   stores `(placeholder_or_fake, original_value)` tuples in process
   memory.
@@ -58,7 +58,7 @@ a documented set of "operators":
 | `Surrogate_AHDS` | Realistic medical surrogates via Azure Health Data Services | No |
 | `Keep` | Pass through unchanged | (preserves original) |
 
-Presidio's `Encrypt` + `Decrypt` pair gives reversibility — but the
+Presidio's `Encrypt` + `Decrypt` pair gives reversibility - but the
 ciphertext output is **not format-preserving** (it's an AES blob,
 not a same-length-same-alphabet fake). Presidio does not ship a
 LLM-Guard-style vault that maps a realistic fake back to its
@@ -77,7 +77,7 @@ gets a redacted prompt sent upstream and a normal response back,
 with no restoration step.
 
 The canonical example is **AI Security Gateway**
-(`aisecuritygateway`) — self-hosted, OpenAI-SDK-compatible proxy
+(`aisecuritygateway`) - self-hosted, OpenAI-SDK-compatible proxy
 that redacts ~28 PII types and detects secrets / API keys before
 forwarding to any of the supported upstream providers (OpenAI,
 Anthropic, Groq, Together, Gemini, Mistral, etc.). No vault, no
@@ -87,11 +87,11 @@ round-trip; the redaction is the whole product.
 
 Similar redaction-only gateways include **AegisGate** (open-source
 LLM-API security gateway with prompt-injection detection, PII
-redaction, dangerous-response sanitisation, and audit logging —
+redaction, dangerous-response sanitisation, and audit logging -
 [github.com/ax128/AegisGate](https://github.com/ax128/AegisGate))
 and WangYihang's **`llm-redactor`** (a transparent egress gateway
 that detects 100+ secret types via Gitleaks-compatible rules,
-intercepts SSE streams, logs detections to a local file —
+intercepts SSE streams, logs detections to a local file -
 [github.com/WangYihang/llm-redactor](https://github.com/WangYihang/llm-redactor)).
 All three sit in the same proxy class; pick whichever upstream-
 provider story and policy surface fits your stack.
@@ -101,7 +101,7 @@ the humility paper below:** WangYihang's `llm-redactor` (an
 open-source proxy tool) and the arXiv paper
 *"LLM-Redactor: An Empirical Evaluation of Eight Techniques for
 Privacy-Preserving LLM Requests"* (Agyemang et al., 2026) share
-the name but are **unrelated projects** — one is software, the
+the name but are **unrelated projects** - one is software, the
 other is a benchmark study. Each is cited at its own URL above
 and below.
 
@@ -125,7 +125,7 @@ The headline finding:
 
 The paper's `achieves N% leak` phrasing makes N a **leak rate, not
 a success rate**: a higher number is a worse outcome. So that 31.3%
-is the **best** combination the authors evaluated — even the optimal
+is the **best** combination the authors evaluated - even the optimal
 mix of local routing + redaction + rephrasing still leaves roughly
 a third of proprietary code exposed in the LLM request. None of
 the eight techniques the paper studied solves the proprietary-code
@@ -157,7 +157,7 @@ Invisibool's mechanism choices that differ from the above:
    generated realistic values; in either case the (placeholder,
    original) pair is the only thing that can reverse the
    substitution, so reversal requires the vault. Invisibool's
-   FF1-eligible registered values are reversible **statelessly** —
+   FF1-eligible registered values are reversible **statelessly** -
    any process loading the same vault keys can decrypt the fake
    back to the original via FF1 trial-decrypt. Presidio's
    `Encrypt` is also reversible-via-key, but its output is not
@@ -182,7 +182,7 @@ Invisibool's mechanism choices that differ from the above:
    (`docs/THREAT_MODEL.md` row 6).
 4. **Fail-closed redaction as a documented contract.** When the
    engine cannot produce a valid fake, the value is removed and
-   replaced with a sentinel — the engine never passes a real
+   replaced with a sentinel - the engine never passes a real
    value through with a "couldn't scrub this, watch out" notice.
    The leak harness exercises every fail-closed branch on every
    PR. We have not found a comparator that exposes this as a
@@ -192,7 +192,7 @@ Invisibool's mechanism choices that differ from the above:
    no telemetry. LLM Guard runs locally as a library too; the
    gateway proxies run on the user's infrastructure but expose
    provider-compatible APIs. Invisibool is the simplest deployment
-   shape — a CLI binary the user runs themselves, no proxy
+   shape - a CLI binary the user runs themselves, no proxy
    surface, no API to expose.
 
 These are **mechanism** differences, not property differences.
@@ -200,7 +200,7 @@ LLM Guard's user-visible round-trip and Invisibool's round-trip
 solve the same user problem: "stop my prompt's secrets from
 leaving the machine, then bring them back when the LLM replies."
 The choices above are why we built a separate tool rather than
-contributing to an existing one — not because we think they make
+contributing to an existing one - not because we think they make
 Invisibool categorically better.
 
 ## What is explicitly NOT yet claimed
@@ -222,7 +222,7 @@ listed here so a reader does not infer them from this document:
   for a later milestone. Not shipped at M0b.
 
 When any of those land, this document should be updated to claim
-only what has actually been built — and to re-survey the
+only what has actually been built - and to re-survey the
 comparators above to confirm none of them has shipped the same
 thing in the meantime.
 

@@ -3,22 +3,22 @@
 //! Three benches, each named so the CI regression tripwire can find them
 //! deterministically in `target/criterion/*/new/estimates.json`:
 //!
-//!   * `engine_scrub/prose_2kb_three_secrets` — the primary latency
+//!   * `engine_scrub/prose_2kb_three_secrets` - the primary latency
 //!     target. ~2 KB of realistic prose with three registered values;
 //!     the matcher fires three times. The project's per-call latency
-//!     goal — p50 < 1 ms / p99 < 5 ms on a consistent machine — is
+//!     goal - p50 < 1 ms / p99 < 5 ms on a consistent machine - is
 //!     measured here, with the published README numbers taken from runs
 //!     on a developer box rather than from CI's shared runners.
-//!   * `engine_scrub/source_64kb_no_secrets` — moderate input, zero
+//!   * `engine_scrub/source_64kb_no_secrets` - moderate input, zero
 //!     hits. Measures Aho-Corasick scanning throughput on text the
 //!     matcher decides nothing about.
-//!   * `engine_scrub/log_1mb_no_secrets` — large input, zero hits. Same
+//!   * `engine_scrub/log_1mb_no_secrets` - large input, zero hits. Same
 //!     fast path, scaled, to surface any per-byte cost that the small
 //!     fixture would hide.
 //!
 //! The CI gate is RELATIVE-ONLY (a >2× regression vs. the committed
 //! baseline). Shared CI runners are too noisy for absolute wall-clock
-//! pass/fail thresholds — a hard "fail if > 5 ms" rule on a shared box
+//! pass/fail thresholds - a hard "fail if > 5 ms" rule on a shared box
 //! produces flaky red builds that contributors learn to ignore, which is
 //! worse than no gate at all. The absolute targets are the product
 //! promise published in the README; the CI gate is a regression
