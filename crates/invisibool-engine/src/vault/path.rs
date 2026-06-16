@@ -201,8 +201,7 @@ mod tests {
         // the vault written to whatever the cwd was at CLI launch,
         // which is the silent-misplacement failure mode this test
         // pins against.
-        let got =
-            linux_vault_dir(Some(OsStr::new("mydata")), Some(OsStr::new("/home/u")));
+        let got = linux_vault_dir(Some(OsStr::new("mydata")), Some(OsStr::new("/home/u")));
         let want = PathBuf::from("/home/u")
             .join(".local")
             .join("share")
