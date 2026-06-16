@@ -12,7 +12,6 @@ authors.workspace = true
 aes = { workspace = true }
 aho-corasick = { workspace = true }
 chacha20poly1305 = { workspace = true }
-directories = { workspace = true }
 fpe = { workspace = true }
 getrandom = { workspace = true }
 hkdf = { workspace = true }
