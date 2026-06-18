@@ -9,6 +9,19 @@
 [graph]
 all-features = false
 no-default-features = false
+# NOTE: `[graph].targets` is deliberately NOT set here. Investigated
+# at chunk 18.5 when adding the first platform-specific dep (keyring's
+# macOS Security framework binding). cargo-deny's `targets` is a
+# FILTER applied to the host-resolved metadata graph: it can REMOVE
+# crates that don't match a listed target, but it cannot ADD crates
+# that the host's `cargo metadata` walk never visited. Since the
+# macOS-only keyring binding (security-framework@3.7.0) is gated by
+# `cfg(target_os = "macos")`, it does not appear in a Linux-host
+# metadata resolution at all, so no `targets = [..., "x86_64-apple-darwin"]`
+# value in this file makes deny inspect it. Cross-platform license
+# coverage is instead provided by the CI deny job, which invokes
+# `cargo deny --target <triple> check` once per shipped triple
+# (Linux, macOS x86_64 + aarch64, Windows). See `.github/workflows/ci.yml`.
 
 [output]
 feature-depth = 1
@@ -57,6 +70,28 @@ allow-wildcard-paths = true
 deny = []
 skip = []
 skip-tree = []
+
+# Authoritative cross-path block on the keyring keyutils backend.
+# Catches direct `keyring/linux-native` enables (in Cargo.toml or via
+# `--features`), the two `linux-native-*-persistent` aliases that
+# transitively enable it, AND any future feature alias that goes
+# through `linux-native`. The build-time `compile_error!` in
+# crates/invisibool-engine/src/keychain/os.rs catches only the
+# `invisibool-engine/linux-native` passthrough path (Rust cfg cannot
+# see transitive-crate features); this rule is the CI-enforced
+# guarantee that fires regardless of how the feature was enabled.
+# Rationale: keyutils collapses AccessDenied / KeyRevoked / KeyExpired
+# into NoEntry, which would cause fetch_or_create to silently
+# generate-and-overwrite the vault key on a locked or revoked entry,
+# orphaning every secret in the existing vault.
+[[bans.features]]
+crate = "keyring"
+deny = [
+    "linux-native",
+    "linux-native-sync-persistent",
+    "linux-native-async-persistent",
+]
+reason = "keyring's keyutils backend collapses access-denied / revoked / expired into NoEntry; enabling it would let fetch_or_create silently generate-and-overwrite the vault key on a locked keychain. See crates/invisibool-engine/src/keychain/os.rs."
 
 # ---- Source policy ----------------------------------------------------------
 

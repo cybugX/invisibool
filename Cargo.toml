@@ -90,6 +90,40 @@ chacha20poly1305 = "0.10"
 # catastrophic; getrandom returning Err is treated as an unrecoverable
 # system failure that terminates the process.
 getrandom = "0.3"
+# OS keychain backend (macOS Security framework, Windows Credential
+# Manager, Linux DBus Secret Service). v3.6.3 verified: per-platform
+# error mapping for each shipped backend (macos / windows /
+# secret_service) correctly distinguishes NoEntry from
+# NoStorageAccess + PlatformFailure, satisfying the keychain trait
+# contract that empty-slot must be Ok(None) and locked/error must be
+# Err(_). The `linux-native` (keyutils) feature is explicitly NOT
+# enabled - keyutils collapses AccessDenied / KeyRevoked / KeyExpired
+# into NoEntry, which would trip fetch_or_create's generate-and-
+# overwrite path and orphan the user's vault.
+#
+# Two-layer guard against accidentally enabling keyutils later:
+#   (1) Build-time signal for the passthrough path. invisibool-engine
+#       declares a `linux-native` passthrough feature that forwards to
+#       `keyring/linux-native`; a `compile_error!` in
+#       crates/invisibool-engine/src/keychain/os.rs fires the moment
+#       it is enabled. Catches enables that go through our crate.
+#   (2) Authoritative cross-path block. A `[[bans.features]]` rule in
+#       deny.toml denies keyring's `linux-native`,
+#       `linux-native-sync-persistent`, and `linux-native-async-persistent`
+#       features regardless of how they got enabled. Enforced by CI's
+#       per-target deny loop. Catches the direct-Cargo.toml-edit path
+#       that the passthrough cannot see (Rust cfg only checks the
+#       current crate's features, not transitive crates').
+#
+# Linux build dependency: the `sync-secret-service` feature pulls
+# `dbus-secret-service` -> `dbus` -> `libdbus-sys`, which links
+# `libdbus-1` via pkg-config. Building on Linux from source requires
+# `libdbus-1-dev` + `pkg-config` (Ubuntu/Debian) or the equivalent
+# `dbus-devel` package. macOS uses Security framework and Windows
+# uses Credential Manager; both are OS-native and need no extra dep.
+# CI's Linux jobs apt-get install it before `cargo {check, test,
+# clippy, bench}`; see .github/workflows/ci.yml.
+keyring = { version = "3", default-features = false, features = ["sync-secret-service", "apple-native", "windows-native"] }
 criterion = "0.8"
 
 [workspace.lints.rust]

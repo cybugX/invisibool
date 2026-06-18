@@ -16,6 +16,7 @@ fpe = { workspace = true }
 getrandom = { workspace = true }
 hkdf = { workspace = true }
 hmac = { workspace = true }
+keyring = { workspace = true }
 regex = { workspace = true }
 secrecy = { workspace = true }
 serde = { workspace = true }
@@ -23,6 +24,20 @@ serde_json = { workspace = true }
 sha2 = { workspace = true }
 subtle = { workspace = true }
 zeroize = { workspace = true }
+
+[features]
+# Passthrough that intentionally fails to compile. Declared so the
+# `#[cfg(feature = "linux-native")]` guard in src/keychain/os.rs sees
+# a known feature name (rustc's `unexpected_cfgs` lint requires every
+# cfg condition to reference a declared feature on the current crate;
+# without this declaration the guard is dead code and CI's clippy
+# -D warnings job fails). Enabling this feature forwards to
+# `keyring/linux-native`, which os.rs's compile_error! refuses with the
+# keyutils-collapse rationale. The authoritative cross-path enforcement
+# is the [[bans.features]] rule in deny.toml; this passthrough only
+# catches the path where someone enables the feature on this crate (or
+# via cargo's feature unification across the workspace).
+linux-native = ["keyring/linux-native"]
 
 [dev-dependencies]
 criterion = { workspace = true }

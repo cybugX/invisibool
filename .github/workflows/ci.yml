@@ -61,6 +61,12 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - uses: dtolnay/rust-toolchain@6190aa5fb88a88ee71c12769924bbe63a9ab152e # 1.96.0
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      # Linux-only build dep: keyring's sync-secret-service backend
+      # transitively pulls libdbus-sys, whose build.rs links against
+      # libdbus-1 via pkg-config. macOS/Windows runners would not need
+      # this; this entire workflow targets ubuntu-24.04, so the step
+      # is correctly Linux-scoped by virtue of every job's runs-on.
+      - run: sudo apt-get install -y libdbus-1-dev pkg-config
       - run: cargo check --workspace --all-targets
       - run: cargo test --workspace --all-targets
 
@@ -74,6 +80,8 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      # See check-test job for rationale (keyring/sync-secret-service -> libdbus-sys).
+      - run: sudo apt-get install -y libdbus-1-dev pkg-config
       - run: cargo clippy --workspace --all-targets -- -D warnings
 
   # ----- cargo-deny --------------------------------------------------------
@@ -94,7 +102,23 @@ jobs:
           tar -xzf /tmp/cargo-deny.tar.gz -C /tmp
           install -m 0755 "/tmp/cargo-deny-${CARGO_DENY_VERSION}-x86_64-unknown-linux-musl/cargo-deny" /usr/local/bin/cargo-deny
           cargo-deny --version
-      - run: cargo deny check
+      # Per-target license/bans/sources sweep. cargo-deny's `[graph].targets`
+      # in deny.toml is a FILTER over the host's cargo-metadata graph, not
+      # a multi-target resolver: macOS-only crates (e.g. the keyring 3.6.3
+      # macOS Security framework binding, security-framework@3.7.0) never
+      # enter a Linux-host metadata walk and so cannot be inspected by a
+      # single host-scoped `cargo deny check`. Running one `cargo deny
+      # --target <triple> check` per shipped triple is what actually
+      # license-checks every platform's resolved tree. See the comment in
+      # deny.toml's [graph] block for the full rationale.
+      - name: Deny per-target check (licenses + bans + sources)
+        run: |
+          set -euo pipefail
+          for t in x86_64-unknown-linux-gnu x86_64-apple-darwin aarch64-apple-darwin x86_64-pc-windows-msvc; do
+            echo "::group::cargo deny --target $t check"
+            cargo deny --target "$t" check
+            echo "::endgroup::"
+          done
 
   # ----- cargo-audit -------------------------------------------------------
   #
@@ -188,6 +212,8 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - uses: dtolnay/rust-toolchain@6190aa5fb88a88ee71c12769924bbe63a9ab152e # 1.96.0
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      # See check-test job for rationale (keyring/sync-secret-service -> libdbus-sys).
+      - run: sudo apt-get install -y libdbus-1-dev pkg-config
       - run: cargo test -p invisibool-engine --test leak_harness -- --nocapture
 
   # ----- Criterion bench regression ----------------------------------------
@@ -212,6 +238,8 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - uses: dtolnay/rust-toolchain@6190aa5fb88a88ee71c12769924bbe63a9ab152e # 1.96.0
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      # See check-test job for rationale (keyring/sync-secret-service -> libdbus-sys).
+      - run: sudo apt-get install -y libdbus-1-dev pkg-config
       - name: Run engine scrub benches
         # Short measurement keeps per-PR cost low; the regen job below
         # uses longer measurement when producing a baseline.
@@ -239,6 +267,8 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - uses: dtolnay/rust-toolchain@6190aa5fb88a88ee71c12769924bbe63a9ab152e # 1.96.0
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      # See check-test job for rationale (keyring/sync-secret-service -> libdbus-sys).
+      - run: sudo apt-get install -y libdbus-1-dev pkg-config
       - name: Run engine scrub benches (long measurement for baseline)
         run: cargo bench -p invisibool-engine --bench scrub -- --warm-up-time 5 --measurement-time 15
       - name: Emit new baseline JSON

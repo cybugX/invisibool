@@ -40,8 +40,10 @@
 use secrecy::SecretBox;
 
 pub mod in_memory;
+pub mod os;
 
 pub use in_memory::InMemoryKeychain;
+pub use os::OsKeychain;
 
 /// Length of every key stored through this trait. 32 bytes (256 bits)
 /// fits both AEAD candidates the vault module may pick from at chunk
