@@ -81,7 +81,7 @@ use zeroize::Zeroizing;
 
 use crate::keychain::{self, KeychainBackend, KeychainError, KeychainSlot, KEY_LEN};
 use crate::tokenizer::fpe::{
-    FpeRegistration, KeyProvider, RegisteredValue, SessionRegistration, TWEAK_LEN,
+    FpeRegistration, KeyProvider, RegisteredValue, SessionFakeKind, SessionRegistration, TWEAK_LEN,
 };
 
 pub use format::{VaultContents, VaultEntry, VaultEntryKind};
@@ -124,6 +124,28 @@ fn os_random(buf: &mut [u8]) {
         "OS CSPRNG must be available; \
          refusing to continue with non-random key/nonce material",
     );
+}
+
+/// Generate a fresh 16-byte FF1 tweak using the OS CSPRNG.
+///
+/// Inherits [`os_random`]'s **PANIC CONTRACT**: a CSPRNG failure
+/// terminates the process. A non-random tweak weakens FF1 (the same
+/// (key, tweak) pair encrypts the same plaintext to the same
+/// ciphertext, so a repeated or predictable tweak across registered
+/// values lets an observer correlate same-value-registered-twice and
+/// reduces FF1's domain-separation guarantee). Treating CSPRNG
+/// failure as recoverable would let a caller silently proceed with
+/// zeros or low-entropy bytes; this helper has NO `Result` by design,
+/// matching the discipline used for vault key/nonce generation.
+///
+/// Lives in this module (rather than in `tokenizer::fpe`) because it
+/// reuses [`os_random`]'s already-audited panic path. If a future
+/// `crypto_random` module ever consolidates all CSPRNG entry points,
+/// both this and [`os_random`] move there together.
+pub fn random_ff1_tweak() -> [u8; 16] {
+    let mut buf = [0u8; 16];
+    os_random(&mut buf);
+    buf
 }
 
 // ---------- error type ----------
@@ -218,6 +240,51 @@ impl From<KeychainError> for VaultError {
 impl From<serde_json::Error> for VaultError {
     fn from(e: serde_json::Error) -> Self {
         Self::Serde(e)
+    }
+}
+
+// ---------- list-time metadata projection ----------
+//
+// `EntryMetadata` + `EntryKindSummary` are the display-safe
+// projections of a `VaultEntry` exposed to the CLI's `list`
+// subcommand. They have NO `value` field (by type, not by
+// discipline), so a caller cannot accidentally print plaintext when
+// rendering list output. The FF1 `tweak` bytes are dropped at the
+// projection step too: they are random per-entry noise of no display
+// value (the user never needs to see them; FF1's correctness does
+// not depend on the tweak being remembered by the user), and
+// omitting them keeps `list` output narrow and copy-pasteable.
+
+/// One entry as the `list` subcommand sees it. Has no field that
+/// holds the registered plaintext.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EntryMetadata {
+    pub label: String,
+    pub kind: EntryKindSummary,
+}
+
+/// Display-safe summary of [`VaultEntryKind`]. The `Fpe` variant
+/// keeps the alphabet name and prefix so `list` can show how an
+/// entry fakes (e.g. "FPE base62 prefix=''"), but drops the random
+/// 16-byte tweak. The `SessionMapped` variant keeps only the kind
+/// discriminator (Card / Pii / Formatless).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EntryKindSummary {
+    Fpe { alphabet: String, prefix: String },
+    SessionMapped { kind: SessionFakeKind },
+}
+
+impl EntryKindSummary {
+    fn from_entry_kind(k: &VaultEntryKind) -> Self {
+        match k {
+            VaultEntryKind::Fpe {
+                alphabet, prefix, ..
+            } => Self::Fpe {
+                alphabet: alphabet.clone(),
+                prefix: prefix.clone(),
+            },
+            VaultEntryKind::SessionMapped { kind } => Self::SessionMapped { kind: *kind },
+        }
     }
 }
 
@@ -324,6 +391,21 @@ impl Vault {
     /// plaintext.
     pub fn labels(&self) -> impl Iterator<Item = &str> {
         self.contents.entries.iter().map(|e| e.label.as_str())
+    }
+
+    /// Display-safe metadata for every entry, suitable for `list`
+    /// output. Returns owned [`EntryMetadata`] values (no `value`
+    /// field, no FF1 tweak bytes) so a caller printing the result
+    /// has no path to plaintext.
+    pub fn list_metadata(&self) -> Vec<EntryMetadata> {
+        self.contents
+            .entries
+            .iter()
+            .map(|e| EntryMetadata {
+                label: e.label.clone(),
+                kind: EntryKindSummary::from_entry_kind(&e.entry_kind),
+            })
+            .collect()
     }
 
     /// Number of entries in the vault.

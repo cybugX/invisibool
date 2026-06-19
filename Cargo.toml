@@ -124,6 +124,20 @@ getrandom = "0.3"
 # CI's Linux jobs apt-get install it before `cargo {check, test,
 # clippy, bench}`; see .github/workflows/ci.yml.
 keyring = { version = "3", default-features = false, features = ["sync-secret-service", "apple-native", "windows-native"] }
+# CLI argument parsing. Default features pared down: drop `suggestions`
+# (pulls in `strsim` and emits "did you mean ...?" hints — nice for
+# UX but extra surface) and `color` (cosmetic; CI logs are noisy
+# enough). Kept: `std` (required for non-no_std builds), `help`,
+# `usage`, `error-context`, and `derive` (the proc-macro API we use).
+# If a future chunk needs the dropped features it adds them with a
+# rationale comment here, NOT silently.
+clap = { version = "4", default-features = false, features = ["std", "help", "usage", "error-context", "derive"] }
+# TTY no-echo prompt for the `register` secret-input path. Used only
+# when stdin is a terminal; piped stdin bypasses this and goes
+# straight to the `Zeroizing<String>` reader. Implementation is
+# tiny (~200 lines): per-platform termios off / Win32 console mode
+# toggle, then read until newline.
+rpassword = "7"
 criterion = "0.8"
 
 [workspace.lints.rust]

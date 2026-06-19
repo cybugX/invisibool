@@ -14,6 +14,9 @@ path = "src/main.rs"
 
 [dependencies]
 invisibool-engine = { workspace = true }
+clap = { workspace = true }
+rpassword = { workspace = true }
+zeroize = { workspace = true }
 
 [lints]
 workspace = true

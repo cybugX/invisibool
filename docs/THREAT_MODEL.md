@@ -519,6 +519,23 @@ user out of every secret they've ever registered.
   M4a's vault hardening rather than landing in M1 because the
   bytes are already heap-resident either way (row 1's residual
   covers the broader case).
+- **Register-time `VaultEntry.value` heap copy (write-path
+  instance of the same residual class as the `serde_json`
+  intermediate above).** The M1 chunk-19 CLI `register` command
+  reads the user's secret as a `Zeroizing<String>` (wipes on
+  drop) and copies it into `VaultEntry.value: String` (chunk
+  18's deliberate plain-`String` choice for the on-disk schema)
+  via `.to_string()`; the copy persists in
+  `Vault.contents.entries[i].value` through `save()` and drops
+  unzeroed at end of the command. The on-disk artifact is
+  AEAD-encrypted, so this is a local heap residual only - same
+  class as the read-path `serde_json` intermediate above. Full
+  closure (typing `VaultEntry.value` as `Zeroizing<String>` for
+  the write path AND a Zeroizing-direct deserializer for the
+  read path) is deferred to M4a's vault hardening so both halves
+  close together; closing only the write path in M1 would change
+  chunk-18 code while leaving the read-path intermediate open
+  for no user-facing benefit.
 - **macOS `F_FULLFSYNC` is not used.** Standard `fsync` on macOS
   does not guarantee durability against unexpected power loss.
   A power-loss within ~milliseconds of a vault write on macOS
